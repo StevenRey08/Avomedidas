@@ -19,7 +19,6 @@
   --shadow-md: 0 8px 24px -4px rgba(31, 74, 34, 0.08);
   --radius-sm: 8px;
   --radius-md: 14px;
-  --radius-lg: 18px;
 }
 
 html {
@@ -59,7 +58,7 @@ main {
 
 /* Encabezado */
 .app-header {
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 
 .logo {
@@ -86,66 +85,18 @@ h2 {
 
 .lead {
   color: var(--mute);
-  margin: 0 0 22px;
+  margin: 0 0 24px;
   max-width: 58ch;
   font-size: 16.5px;
   line-height: 1.5;
 }
 
-/* Navegación por pestañas */
-.top-nav {
-  display: flex;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.nav-pill {
-  appearance: none;
-  font: 600 14.5px 'Figtree', sans-serif;
-  border: 1.5px solid var(--line);
-  background: var(--soft);
-  color: var(--ink);
-  border-radius: 30px;
-  padding: 8px 18px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.2s ease;
-  margin: 0;
-}
-
-.nav-pill:hover {
-  background: var(--line);
-}
-
-.nav-pill.active {
-  background: var(--ink);
-  color: var(--onink);
-  border-color: var(--ink);
-  box-shadow: 0 2px 8px rgba(31, 74, 34, 0.2);
-}
-
-.nav-pill .badge {
-  background: var(--tape);
-  color: var(--ink);
-  border-radius: 20px;
-  font-size: 12px;
-  padding: 2px 8px;
-  font-weight: 700;
-}
-
-.nav-pill.active .badge {
-  background: var(--tape);
-  color: var(--ink);
-}
-
-/* Tarjeta principal */
+/* Tarjeta principal del formulario */
 .card {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  padding: 26px 28px;
+  padding: 28px;
   margin-bottom: 28px;
   box-shadow: var(--shadow-sm);
   transition: box-shadow 0.25s ease;
@@ -159,55 +110,9 @@ h2 {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 22px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--soft);
-}
-
-.section-desc {
-  margin: 4px 0 0;
-  font-size: 14px;
-  color: var(--mute);
-}
-
-.section-desc code {
-  background: var(--soft);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 12.5px;
-  color: var(--ink);
-  border: 1px solid var(--line);
-}
-
-/* Indicador en línea */
-.status-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ok);
-  background: var(--soft);
-  padding: 4px 10px;
-  border-radius: 20px;
-  border: 1px solid var(--line);
-}
-
-.status-indicator .dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--ok);
-  box-shadow: 0 0 0 2px rgba(45, 106, 48, 0.25);
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% { transform: scale(0.95); opacity: 0.8; }
-  50% { transform: scale(1.15); opacity: 1; }
-  100% { transform: scale(0.95); opacity: 0.8; }
 }
 
 /* Layout formulario + silueta */
@@ -305,7 +210,7 @@ h2 {
   r: 5px;
 }
 
-/* Formulario */
+/* Campos del formulario */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -438,16 +343,6 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
-.btn-secondary {
-  background: var(--soft);
-  color: var(--ink);
-  border: 1.5px solid var(--line);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: var(--line);
-}
-
 .sec {
   background: #fff;
   color: var(--ink);
@@ -547,158 +442,6 @@ button.link-btn:hover {
   flex-wrap: wrap;
 }
 
-/* Vista Admin */
-.storage-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  padding: 6px 12px;
-  border-radius: 20px;
-  background: var(--soft);
-  border: 1px solid var(--line);
-  color: var(--ink);
-  font-weight: 600;
-}
-
-.storage-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #34a853;
-}
-
-.bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
-}
-
-.bar-left {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.bar-right {
-  flex-grow: 1;
-  max-width: 280px;
-}
-
-.search-input {
-  margin-top: 0;
-  padding: 8px 12px;
-  font-size: 14px;
-}
-
-.cnt {
-  font: 400 16px 'Figtree', sans-serif;
-  color: var(--mute);
-  margin-left: 6px;
-}
-
-/* Tabla de pedidos */
-.scroll {
-  overflow-x: auto;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: #fff;
-}
-
-table {
-  border-collapse: collapse;
-  width: 100%;
-  font-size: 14px;
-  min-width: 640px;
-}
-
-th, td {
-  text-align: left;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--line);
-  white-space: nowrap;
-}
-
-th {
-  background: var(--soft);
-  color: var(--ink);
-  font-weight: 700;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-tr:hover td {
-  background: #fbfdf9;
-}
-
-.tag-talla {
-  display: inline-block;
-  background: var(--soft);
-  color: var(--ink);
-  font-weight: 700;
-  font-size: 12.5px;
-  padding: 2px 7px;
-  border-radius: 4px;
-  border: 1px solid var(--line);
-}
-
-.tag-sugerida {
-  display: inline-block;
-  background: #e2f1da;
-  color: var(--rose);
-  font-weight: 700;
-  font-size: 12.5px;
-  padding: 2px 7px;
-  border-radius: 4px;
-  border: 1px solid var(--tape);
-}
-
-.empty {
-  color: var(--mute);
-  margin: 32px 16px;
-  text-align: center;
-  font-size: 15px;
-}
-
-.loading-state {
-  color: var(--mute);
-  text-align: center;
-  margin: 30px;
-  font-style: italic;
-}
-
-td button.action-btn {
-  background: none;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  padding: 4px 8px;
-  margin-right: 6px;
-  font-size: 12.5px;
-  cursor: pointer;
-  color: var(--ink);
-  transition: all 0.15s ease;
-}
-
-td button.action-btn:hover {
-  background: var(--soft);
-  border-color: var(--mute);
-  box-shadow: none;
-}
-
-td button.action-btn.del-btn {
-  color: var(--danger);
-  border-color: #f0c5c5;
-}
-
-td button.action-btn.del-btn:hover {
-  background: var(--danger-soft);
-  border-color: var(--danger);
-}
-
 /* Pie de página */
 .app-footer {
   text-align: center;
@@ -736,20 +479,10 @@ td button.action-btn.del-btn:hover {
     text-align: left;
     max-width: 160px;
   }
-
-  .bar-right {
-    max-width: 100%;
-    width: 100%;
-  }
-
-  .bar {
-    flex-direction: column;
-    align-items: stretch;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .zone, button, .status-indicator .dot {
+  .zone, button {
     transition: none;
     animation: none;
   }

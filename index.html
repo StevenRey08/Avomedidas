@@ -21,22 +21,12 @@
       <h1>Tus medidas, tu talla</h1>
       <p class="lead">Completa tus datos y medidas en centímetros. Guardamos tu ficha en tiempo real en nuestra base de datos para confeccionar la prenda en la talla perfecta.</p>
 
-      <!-- Barra de navegación rápida -->
-      <nav class="top-nav">
-        <button type="button" id="tabCliente" class="nav-pill active">📝 Formulario de Pedido</button>
-        <button type="button" id="tabAdmin" class="nav-pill">
-          📦 Ver Pedidos Guardados <span class="badge" id="badgeCount">0</span>
-        </button>
-      </nav>
     </header>
 
-    <!-- VISTA CLIENTE: Formulario y Silueta interactiva -->
-    <section class="card" id="vistaCliente">
+    <!-- FORMULARIO DE CLIENTE Y SILUETA INTERACTIVA -->
+    <section class="card">
       <div class="card-header">
         <h2>Datos del pedido</h2>
-        <span class="status-indicator live" id="liveIndicator">
-          <span class="dot"></span> Sistema en línea
-        </span>
       </div>
 
       <div class="layout">
@@ -175,34 +165,6 @@
             </div>
           </div>
         </div>
-      </div>
-    </section>
-
-    <!-- VISTA ADMIN: Pedidos almacenados en Redis -->
-    <section class="card" id="vistaAdmin" hidden>
-      <div class="card-header">
-        <div>
-          <h2>Pedidos Recibidos en Redis <span class="cnt" id="cnt">(0)</span></h2>
-          <p class="section-desc">Consultando la función serverless de Vercel (<code>/api/pedidos</code>).</p>
-        </div>
-        <div class="storage-badge" id="storageBadge">
-          <span class="storage-dot"></span>
-          <span id="storageName">Conectando...</span>
-        </div>
-      </div>
-
-      <div class="bar">
-        <div class="bar-left">
-          <button id="pdfAll" class="btn-primary" disabled>📄 Descargar PDF de todos</button>
-          <button id="btnRecargar" class="btn-secondary">🔄 Actualizar datos</button>
-        </div>
-        <div class="bar-right">
-          <input type="search" id="busquedaAdmin" placeholder="Buscar por cliente o talla..." class="search-input">
-        </div>
-      </div>
-
-      <div class="scroll" id="lista">
-        <p class="loading-state">Cargando pedidos desde Redis...</p>
       </div>
     </section>
 

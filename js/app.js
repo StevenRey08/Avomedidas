@@ -1,6 +1,7 @@
 /**
  * Avocat · Tallas y Medidas
- * Integración con Vercel Serverless Function (/api/pedidos) y Redis
+ * Formulario de confección de prendas para clientes
+ * Envía y guarda los datos en Vercel Serverless Function (/api/pedidos) con Redis
  */
 
 (function () {
@@ -19,7 +20,6 @@
     manga: 'Largo de manga (del hombro a la muñeca)',
   };
 
-  let orders = [];
   let lastOrder = null;
 
   /* ------------------- CÁLCULO DE TALLA SUGERIDA ------------------- */
@@ -91,7 +91,7 @@
     });
   });
 
-  /* ------------------- GENERADOR DE PDF (jsPDF) ------------------- */
+  /* ------------------- GENERADOR DE FICHA EN PDF (jsPDF) ------------------- */
   const COLOR_GREEN = [31, 74, 34];
   const COLOR_LIGHT = [241, 248, 236];
 
@@ -202,107 +202,21 @@
     doc.setTextColor(60, 80, 60);
     const notasTexto = o.notas || 'Sin notas especiales especificadas por el cliente.';
     doc.text(doc.splitTextToSize(notasTexto, 170), 20, y + 8);
-  }
 
-  function generarResumenTabla(doc, list) {
-    agregarCabeceraPDF(doc, 'Resumen de Pedidos');
-
-    const cols = [
-      ['#', 15],
-      ['Cliente', 24],
-      ['Cant.', 84],
-      ['Talla', 97],
-      ['Pecho', 113],
-      ['Cint.', 129],
-      ['Cad.', 145],
-      ['Homb.', 162],
-      ['Manga', 179],
-    ];
-
-    function dibujarCabeceraTabla(curY) {
-      doc.setFillColor.apply(doc, COLOR_GREEN);
-      doc.rect(15, curY - 5.5, 180, 8.5, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9.5);
-      cols.forEach((c) => doc.text(c[0], c[1], curY));
-    }
-
-    let y = 46;
-    dibujarCabeceraTabla(y);
-    y += 9.5;
-
-    list.forEach((o, i) => {
-      if (y > 270) {
-        doc.addPage();
-        y = 22;
-        dibujarCabeceraTabla(y);
-        y += 9.5;
-      }
-      if (i % 2 === 0) {
-        doc.setFillColor.apply(doc, COLOR_LIGHT);
-        doc.rect(15, y - 5, 180, 7.5, 'F');
-      }
-      doc.setTextColor.apply(doc, COLOR_GREEN);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-
-      const fila = [
-        i + 1,
-        o.nombre.slice(0, 28),
-        o.cantidad,
-        o.talla,
-        `${o.pecho}`,
-        `${o.cintura}`,
-        `${o.cadera}`,
-        `${o.hombros}`,
-        `${o.manga}`,
-      ];
-
-      cols.forEach((c, j) => doc.text(String(fila[j]), c[1], y));
-      y += 7.5;
-    });
-
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
-    doc.setTextColor(100, 120, 100);
-    doc.text('Medidas expresadas en centímetros (cm).', 15, Math.min(y + 8, 285));
+    doc.setTextColor(120, 140, 120);
+    doc.text('Avocat Confecciones · Tallas y Medidas', 105, 290, { align: 'center' });
   }
 
-  function construirDocumentoPDF(list) {
+  function descargarPDF(order, nombreArchivo) {
     if (!window.jspdf || !window.jspdf.jsPDF) {
-      return null;
-    }
-    const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
-
-    if (list.length > 1) {
-      generarResumenTabla(doc, list);
-      doc.addPage();
-    }
-
-    list.forEach((o, i) => {
-      if (i > 0) doc.addPage();
-      generarFichaPedido(doc, o);
-    });
-
-    const totalPaginas = doc.getNumberOfPages();
-    for (let p = 1; p <= totalPaginas; p++) {
-      doc.setPage(p);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(120, 140, 120);
-      doc.text(`Avocat · Página ${p} de ${totalPaginas}`, 105, 290, { align: 'center' });
-    }
-
-    return doc;
-  }
-
-  function descargarPDF(list, nombreArchivo) {
-    const doc = construirDocumentoPDF(list);
-    if (!doc) {
       $('err').textContent =
         'No se pudo inicializar jsPDF. Por favor recarga la página o verifica tu conexión.';
       return;
     }
+    const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
+    generarFichaPedido(doc, order);
     doc.save(nombreArchivo);
   }
 
@@ -391,7 +305,7 @@
     const btnSpinner = btn.querySelector('.btn-spinner');
 
     btn.disabled = true;
-    btnText.textContent = 'Guardando en Redis...';
+    btnText.textContent = 'Guardando pedido...';
     btnSpinner.hidden = false;
 
     try {
@@ -399,7 +313,7 @@
       lastOrder = respuesta.order;
 
       $('okt').textContent = '¡Pedido recibido y guardado con éxito!';
-      $('okmeta').textContent = `Código: ${lastOrder.id} · Cliente: ${lastOrder.nombre} · Talla pedida: ${lastOrder.talla} (Sugerida: ${lastOrder.tallaSugerida})`;
+      $('okmeta').textContent = `Código: ${lastOrder.id} · Cliente: ${lastOrder.nombre} · Talla solicitada: ${lastOrder.talla} (Sugerida por medidas: ${lastOrder.tallaSugerida})`;
       ok.hidden = false;
 
       // Limpiar formulario excepto cantidad por defecto
@@ -408,9 +322,6 @@
       });
       $('cantidad').value = 1;
       actualizarSugerencia();
-
-      // Actualizar lista en segundo plano
-      cargarPedidosDesdeRedis();
     } catch (e) {
       err.textContent = `No se pudo enviar el pedido: ${e.message}`;
     } finally {
@@ -423,7 +334,7 @@
   // Botón para descargar PDF del pedido recién enviado
   $('miPdf').addEventListener('click', function () {
     if (lastOrder) {
-      descargarPDF([lastOrder], generarNombreArchivo(lastOrder));
+      descargarPDF(lastOrder, generarNombreArchivo(lastOrder));
     }
   });
 
@@ -432,184 +343,4 @@
     $('ok').hidden = true;
     $('nombre').focus();
   });
-
-  /* ------------------- PANEL DE ADMINISTRACIÓN / PEDIDOS REDIS ------------------- */
-  function renderTablaPedidos() {
-    const box = $('lista');
-    const busqueda = ($('busquedaAdmin').value || '').toLowerCase().trim();
-
-    const pedidosFiltrados = orders.filter((o) => {
-      if (!busqueda) return true;
-      return (
-        o.nombre.toLowerCase().includes(busqueda) ||
-        o.talla.toLowerCase().includes(busqueda) ||
-        (o.id && o.id.toLowerCase().includes(busqueda))
-      );
-    });
-
-    $('cnt').textContent = `(${orders.length})`;
-    $('badgeCount').textContent = orders.length;
-    $('pdfAll').disabled = orders.length === 0;
-
-    if (!orders.length) {
-      box.innerHTML = '<p class="empty">Aún no hay pedidos guardados en Redis. Envía uno desde el formulario.</p>';
-      return;
-    }
-
-    if (!pedidosFiltrados.length) {
-      box.innerHTML = '<p class="empty">No se encontraron pedidos que coincidan con la búsqueda.</p>';
-      return;
-    }
-
-    box.innerHTML = `
-      <table>
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Cliente</th>
-            <th>Cant.</th>
-            <th>Talla</th>
-            <th>Sugerida</th>
-            <th>Pecho</th>
-            <th>Cintura</th>
-            <th>Cadera</th>
-            <th>Hombros</th>
-            <th>Manga</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${pedidosFiltrados
-            .map(
-              (o) => `
-            <tr>
-              <td>${formatearFecha(o.fecha)}</td>
-              <td><strong>${escapeHTML(o.nombre)}</strong></td>
-              <td>${o.cantidad}</td>
-              <td><span class="tag-talla">${escapeHTML(o.talla)}</span></td>
-              <td><span class="tag-sugerida">${escapeHTML(o.tallaSugerida || '-')}</span></td>
-              <td>${o.pecho} cm</td>
-              <td>${o.cintura} cm</td>
-              <td>${o.cadera} cm</td>
-              <td>${o.hombros} cm</td>
-              <td>${o.manga} cm</td>
-              <td>
-                <button type="button" class="action-btn" data-action="pdf" data-id="${escapeHTML(o.id)}">📄 PDF</button>
-                <button type="button" class="action-btn del-btn" data-action="del" data-id="${escapeHTML(o.id)}">🗑️ Quitar</button>
-              </td>
-            </tr>
-          `
-            )
-            .join('')}
-        </tbody>
-      </table>
-    `;
-  }
-
-  function escapeHTML(str) {
-    return String(str || '').replace(/[&<>"']/g, (m) => ({
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;',
-    }[m]));
-  }
-
-  async function cargarPedidosDesdeRedis() {
-    try {
-      const res = await fetch('/api/pedidos');
-      const data = await res.json();
-
-      if (data.success && Array.isArray(data.orders)) {
-        orders = data.orders;
-
-        if (data.storage) {
-          const badge = $('storageBadge');
-          const name = $('storageName');
-          name.textContent = `${data.storage.provider} (${data.storage.configured ? 'Conectado' : 'Local'})`;
-          badge.title = data.storage.status || '';
-        }
-
-        renderTablaPedidos();
-      }
-    } catch (err) {
-      console.warn('Error cargando pedidos:', err);
-    }
-  }
-
-  // Delegación de eventos para botones de tabla (PDF individual y Eliminar)
-  $('lista').addEventListener('click', async function (e) {
-    const btn = e.target.closest('button[data-action]');
-    if (!btn) return;
-
-    const action = btn.getAttribute('data-action');
-    const id = btn.getAttribute('data-id');
-    const order = orders.find((x) => x.id === id);
-    if (!order) return;
-
-    if (action === 'pdf') {
-      descargarPDF([order], generarNombreArchivo(order));
-      return;
-    }
-
-    if (action === 'del') {
-      if (!confirm(`¿Deseas eliminar de Redis el pedido de "${order.nombre}"?`)) {
-        return;
-      }
-
-      btn.disabled = true;
-      try {
-        const res = await fetch(`/api/pedidos?id=${encodeURIComponent(id)}`, {
-          method: 'DELETE',
-        });
-        const d = await res.json();
-        if (d.success) {
-          orders = orders.filter((x) => x.id !== id);
-          renderTablaPedidos();
-        } else {
-          alert('No se pudo eliminar el pedido: ' + (d.error || 'Error desconocido'));
-        }
-      } catch (err) {
-        alert('Error al comunicarse con el servidor: ' + err.message);
-      }
-    }
-  });
-
-  // Descargar PDF de todos los pedidos
-  $('pdfAll').addEventListener('click', function () {
-    if (orders.length > 0) {
-      descargarPDF(orders, 'pedidos-avocat-todos.pdf');
-    }
-  });
-
-  // Botón recargar pedidos
-  $('btnRecargar').addEventListener('click', cargarPedidosDesdeRedis);
-
-  // Filtro de búsqueda en vivo
-  $('busquedaAdmin').addEventListener('input', renderTablaPedidos);
-
-  /* ------------------- NAVEGACIÓN ENTRE PESTAÑAS ------------------- */
-  const tabCliente = $('tabCliente');
-  const tabAdmin = $('tabAdmin');
-  const vistaCliente = $('vistaCliente');
-  const vistaAdmin = $('vistaAdmin');
-
-  tabCliente.addEventListener('click', () => {
-    tabCliente.classList.add('active');
-    tabAdmin.classList.remove('active');
-    vistaCliente.hidden = false;
-    vistaAdmin.hidden = true;
-  });
-
-  tabAdmin.addEventListener('click', () => {
-    tabAdmin.classList.add('active');
-    tabCliente.classList.remove('active');
-    vistaCliente.hidden = true;
-    vistaAdmin.hidden = false;
-    cargarPedidosDesdeRedis();
-  });
-
-  // Inicialización
-  cargarPedidosDesdeRedis();
 })();
