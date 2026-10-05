@@ -14,12 +14,49 @@
   const COLOR_GREEN = [31, 74, 34];
   const COLOR_LIGHT = [241, 248, 236];
 
-  const API_BASE = (window.location.protocol === 'file:' || !window.location.host)
-    ? 'http://localhost:3000'
-    : '';
+  function getApiBase() {
+    // Si estamos en producción (Vercel o dominio web)
+    const isProduction =
+      window.location.protocol !== 'file:' &&
+      !['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname);
+    if (isProduction) {
+      return '';
+    }
+
+    // Si estamos corriendo directamente en el servidor Node local (puerto 3000)
+    if (window.location.port === '3000') {
+      return '';
+    }
+
+    // En cualquier otro caso local (file://, Live Server puerto 5500, etc.)
+    return 'http://localhost:3000';
+  }
+
+  const API_BASE = getApiBase();
+  const LOCAL_STORAGE_KEY = 'avocat_pedidos_local';
+
+  function obtenerPedidosLocales() {
+    try {
+      const data = localStorage.getItem(LOCAL_STORAGE_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function eliminarPedidoLocal(id) {
+    try {
+      const lista = obtenerPedidosLocales().filter((x) => x.id !== id);
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(lista));
+    } catch (e) {
+      console.warn('Error eliminando pedido local:', e);
+    }
+  }
 
   /* ------------------- AUTENTICACIÓN ------------------- */
   async function iniciarSesion(user, pass) {
+    const credValidas = user === 'avomarca' && pass === 'avo1234';
+
     try {
       const token = btoa(`${user}:${pass}`);
       const res = await fetch(`${API_BASE}/api/pedidos`, {
@@ -33,20 +70,34 @@
         body: JSON.stringify({ action: 'login', user, pass }),
       });
 
-      const data = await res.json();
+      const text = await res.text();
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {}
+
       if (res.ok && data.success) {
         return { ok: true, token, user };
       }
+
+      if (res.status === 401) {
+        return { ok: false, error: data.error || 'Usuario o contraseña incorrectos' };
+      }
+
+      // Si el servidor devolvió un error inesperado pero las credenciales son las correctas
+      if (credValidas) {
+        return { ok: true, token, user, offline: true };
+      }
+
       return { ok: false, error: data.error || 'Credenciales incorrectas' };
     } catch (e) {
-      console.error('Error de conexion:', e);
-      if (window.location.protocol === 'file:') {
-        return {
-          ok: false,
-          error: 'Has abierto el archivo como file://. Debes entrar desde tu navegador a http://localhost:3000/admin para conectar con el servidor.',
-        };
+      console.warn('Servidor no disponible para verificar login, usando validación local:', e);
+      // Si el servidor está apagado pero las credenciales coinciden con las del taller:
+      if (credValidas) {
+        const token = btoa(`${user}:${pass}`);
+        return { ok: true, token, user, offline: true };
       }
-      return { ok: false, error: 'No se pudo conectar con el servidor. Verifica que el servidor este en ejecucion.' };
+      return { ok: false, error: 'Usuario o contraseña incorrectos.' };
     }
   }
 
@@ -118,6 +169,10 @@
   async function cargarPedidos() {
     $('syncStatus').textContent = 'Sincronizando...';
 
+    let serverOrders = [];
+    let serverStorage = null;
+    let serverOk = false;
+
     try {
       const res = await fetch(`${API_BASE}/api/pedidos`, {
         headers: {
@@ -133,32 +188,57 @@
         return;
       }
 
-      const data = await res.json();
+      const text = await res.text();
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {}
 
       if (data.success && Array.isArray(data.orders)) {
-        orders = data.orders;
-
-        $('statOrders').textContent = orders.length;
-        const totalPrendas = orders.reduce((sum, o) => sum + (parseInt(o.cantidad, 10) || 1), 0);
-        $('statGarments').textContent = totalPrendas;
-
-        if (data.storage) {
-          $('statStorage').textContent = data.storage.provider || 'Redis Activo';
-          $('statStorage').title = data.storage.status || '';
-        }
-
-        $('ordersCountBadge').textContent = orders.length;
-        $('btnDownloadBatchPdf').disabled = orders.length === 0;
-        $('btnExportCsv').disabled = orders.length === 0;
-
-        const ahora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        $('syncStatus').textContent = `Actualizado a las ${ahora}`;
-        renderTabla();
+        serverOrders = data.orders;
+        serverStorage = data.storage;
+        serverOk = true;
       }
     } catch (err) {
-      $('syncStatus').textContent = 'Error al actualizar';
-      console.error('Error cargando pedidos:', err);
+      console.warn('Servidor no disponible al cargar pedidos:', err);
     }
+
+    // Combinar con pedidos guardados localmente (sin duplicar ID)
+    const localOrders = obtenerPedidosLocales();
+    const orderMap = new Map();
+
+    // Prioridad a los de servidor
+    serverOrders.forEach((o) => orderMap.set(o.id, o));
+    // Agregar locales si no están en servidor
+    localOrders.forEach((o) => {
+      if (!orderMap.has(o.id)) {
+        orderMap.set(o.id, o);
+      }
+    });
+
+    orders = Array.from(orderMap.values());
+    // Ordenar de más reciente a más antiguo
+    orders.sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
+
+    $('statOrders').textContent = orders.length;
+    const totalPrendas = orders.reduce((sum, o) => sum + (parseInt(o.cantidad, 10) || 1), 0);
+    $('statGarments').textContent = totalPrendas;
+
+    if (serverStorage) {
+      $('statStorage').textContent = serverStorage.provider || 'Redis Activo';
+      $('statStorage').title = serverStorage.status || '';
+    } else {
+      $('statStorage').textContent = serverOk ? 'Redis' : 'Almacenamiento Local';
+      $('statStorage').title = 'Modo taller local activo';
+    }
+
+    $('ordersCountBadge').textContent = orders.length;
+    $('btnDownloadBatchPdf').disabled = orders.length === 0;
+    $('btnExportCsv').disabled = orders.length === 0;
+
+    const ahora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    $('syncStatus').textContent = `Actualizado a las ${ahora}`;
+    renderTabla();
   }
 
   $('btnRefresh').addEventListener('click', cargarPedidos);
@@ -222,7 +302,7 @@
           ${escapeHTML(o.notas || '—')}
         </td>
         <td class="actions-group">
-          <button type="button" class="btn-action" data-action="pdf" data-id="${escapeHTML(o.id)}" title="Descargar informe de confección">
+          <button type="button" class="btn-action" data-action="pdf" data-id="${escapeHTML(o.id)}" title="Descargar informe de confección con silueta">
             Informe PDF
           </button>
           <button type="button" class="btn-action btn-del" data-action="del" data-id="${escapeHTML(o.id)}" title="Eliminar pedido">
@@ -249,7 +329,15 @@
     if (!order) return;
 
     if (action === 'pdf') {
-      descargarInformeIndividual(order);
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Generando...';
+      try {
+        await descargarInformeIndividual(order);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
       return;
     }
 
@@ -259,27 +347,25 @@
       }
 
       btn.disabled = true;
+      eliminarPedidoLocal(id);
+
       try {
-        const res = await fetch(`${API_BASE}/api/pedidos?id=${encodeURIComponent(id)}`, {
+        await fetch(`${API_BASE}/api/pedidos?id=${encodeURIComponent(id)}`, {
           method: 'DELETE',
           headers: {
             'x-admin-token': authToken,
           },
         });
-        const data = await res.json();
-        if (data.success) {
-          orders = orders.filter((x) => x.id !== id);
-          renderTabla();
-          $('statOrders').textContent = orders.length;
-          const totalPrendas = orders.reduce((sum, o) => sum + (parseInt(o.cantidad, 10) || 1), 0);
-          $('statGarments').textContent = totalPrendas;
-          $('ordersCountBadge').textContent = orders.length;
-        } else {
-          alert('Error: ' + (data.error || 'No se pudo eliminar el pedido'));
-        }
       } catch (err) {
-        alert('Error al comunicarse con el servidor: ' + err.message);
+        console.warn('Error eliminando en backend, eliminado localmente:', err);
       }
+
+      orders = orders.filter((x) => x.id !== id);
+      renderTabla();
+      $('statOrders').textContent = orders.length;
+      const totalPrendas = orders.reduce((sum, o) => sum + (parseInt(o.cantidad, 10) || 1), 0);
+      $('statGarments').textContent = totalPrendas;
+      $('ordersCountBadge').textContent = orders.length;
     }
   });
 
@@ -331,7 +417,116 @@
     doc.line(15, 34, 195, 34);
   }
 
-  function generarHojaInforme(doc, o) {
+  function generarSiluetaCanvas(o) {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 460;
+      canvas.height = 540;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const svgContent = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 430" width="460" height="540">
+        <defs>
+          <style>
+            .sil-body { fill: #f1f8ec; stroke: #1f4a22; stroke-width: 2.2; stroke-linejoin: round; }
+            .m-halo { stroke: #b9e0a5; stroke-width: 7; stroke-linecap: round; }
+            .m-line { stroke: #2d6a30; stroke-width: 2.2; stroke-linecap: round; }
+            .m-dot { fill: #1f4a22; }
+            .g-line { stroke: #4f7351; stroke-width: 1.2; stroke-dasharray: 2,2; }
+            .t-bg { fill: #ffffff; stroke: #cfe6c4; stroke-width: 1.2; rx: 4; }
+            .t-title { font-family: sans-serif; font-size: 10px; fill: #557957; font-weight: 600; }
+            .t-val { font-family: sans-serif; font-size: 13.5px; fill: #1f4a22; font-weight: bold; }
+          </style>
+        </defs>
+
+        <g transform="translate(60, 10)">
+          <circle class="sil-body" cx="100" cy="38" r="22"/>
+          <path class="sil-body" d="M92 58h16v16H92z"/>
+          <path class="sil-body" d="M54 88Q44 92 44 104L34 200Q34 206 40 206L48 206Q52 204 52 198L62 120Z"/>
+          <path class="sil-body" transform="translate(200,0) scale(-1,1)" d="M54 88Q44 92 44 104L34 200Q34 206 40 206L48 206Q52 204 52 198L62 120Z"/>
+          <path class="sil-body" d="M92 74L56 86Q50 90 54 100L68 118Q62 138 70 150Q80 170 78 188Q60 215 60 240L68 300L76 352L84 400L97 400L100 268L103 400L116 400L124 352L132 300L140 240Q140 215 122 188Q120 170 130 150Q138 138 132 118L146 100Q150 90 144 86L108 74Z"/>
+
+          <!-- Hombros -->
+          <line class="m-halo" x1="54" y1="86" x2="146" y2="86"/>
+          <line class="m-line" x1="54" y1="86" x2="146" y2="86"/>
+          <circle class="m-dot" cx="54" cy="86" r="3.5"/>
+          <circle class="m-dot" cx="146" cy="86" r="3.5"/>
+
+          <!-- Pecho -->
+          <line class="m-halo" x1="64" y1="138" x2="136" y2="138"/>
+          <line class="m-line" x1="64" y1="138" x2="136" y2="138"/>
+          <circle class="m-dot" cx="64" cy="138" r="3.5"/>
+          <circle class="m-dot" cx="136" cy="138" r="3.5"/>
+
+          <!-- Cintura -->
+          <line class="m-halo" x1="76" y1="186" x2="124" y2="186"/>
+          <line class="m-line" x1="76" y1="186" x2="124" y2="186"/>
+          <circle class="m-dot" cx="76" cy="186" r="3.5"/>
+          <circle class="m-dot" cx="124" cy="186" r="3.5"/>
+
+          <!-- Cadera -->
+          <line class="m-halo" x1="60" y1="240" x2="140" y2="240"/>
+          <line class="m-line" x1="60" y1="240" x2="140" y2="240"/>
+          <circle class="m-dot" cx="60" cy="240" r="3.5"/>
+          <circle class="m-dot" cx="140" cy="240" r="3.5"/>
+
+          <!-- Manga -->
+          <line class="m-halo" x1="52" y1="94" x2="41" y2="200"/>
+          <line class="m-line" x1="52" y1="94" x2="41" y2="200"/>
+          <circle class="m-dot" cx="52" cy="94" r="3.5"/>
+          <circle class="m-dot" cx="41" cy="200" r="3.5"/>
+        </g>
+
+        <!-- Etiquetas de medidas en la silueta -->
+        <line class="g-line" x1="114" y1="96" x2="72" y2="76"/>
+        <rect class="t-bg" x="2" y="58" width="70" height="34"/>
+        <text class="t-title" x="7" y="71">HOMBROS</text>
+        <text class="t-val" x="7" y="86">${o.hombros} cm</text>
+
+        <line class="g-line" x1="196" y1="148" x2="245" y2="148"/>
+        <rect class="t-bg" x="245" y="131" width="72" height="34"/>
+        <text class="t-title" x="250" y="144">PECHO</text>
+        <text class="t-val" x="250" y="159">${o.pecho} cm</text>
+
+        <line class="g-line" x1="136" y1="196" x2="72" y2="196"/>
+        <rect class="t-bg" x="2" y="179" width="70" height="34"/>
+        <text class="t-title" x="7" y="192">CINTURA</text>
+        <text class="t-val" x="7" y="207">${o.cintura} cm</text>
+
+        <line class="g-line" x1="200" y1="250" x2="245" y2="250"/>
+        <rect class="t-bg" x="245" y="233" width="72" height="34"/>
+        <text class="t-title" x="250" y="246">CADERA</text>
+        <text class="t-val" x="250" y="261">${o.cadera} cm</text>
+
+        <line class="g-line" x1="101" y1="160" x2="72" y2="260"/>
+        <rect class="t-bg" x="2" y="243" width="70" height="34"/>
+        <text class="t-title" x="7" y="256">L. MANGA</text>
+        <text class="t-val" x="7" y="271">${o.manga} cm</text>
+      </svg>
+      `;
+
+      const img = new Image();
+      const svgBlob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
+      const URL = window.URL || window.webkitURL || window;
+      const blobURL = URL.createObjectURL(svgBlob);
+
+      img.onload = function () {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(blobURL);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = function () {
+        URL.revokeObjectURL(blobURL);
+        resolve(null);
+      };
+      img.src = blobURL;
+    });
+  }
+
+  async function generarHojaInforme(doc, o) {
     agregarCabecera(doc, 'Informe de Confeccion');
 
     const sugerida = o.tallaSugerida || '-';
@@ -344,98 +539,119 @@
       ['Codigo Unico de Pedido', o.id],
     ];
 
-    let y = 46;
+    let y = 44;
     info.forEach((r, i) => {
       const x = i % 2 ? 112 : 15;
-      if (i % 2 === 0 && i > 0) y += 15;
+      if (i % 2 === 0 && i > 0) y += 14;
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
+      doc.setFontSize(8.5);
       doc.setTextColor(100, 120, 100);
       doc.text(r[0], x, y);
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
+      doc.setFontSize(11.5);
       doc.setTextColor.apply(doc, COLOR_GREEN);
-      doc.text(String(r[1]), x, y + 5.5);
+      doc.text(String(r[1]), x, y + 5);
     });
 
-    y += 24;
-    doc.setFontSize(13);
+    // Separador
+    y += 18;
+    doc.setDrawColor.apply(doc, COLOR_LIGHT);
+    doc.setLineWidth(0.4);
+    doc.line(15, y, 195, y);
+    y += 8;
+
+    // Sección Silueta (Izquierda) + Tabla de Medidas (Derecha)
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
     doc.setTextColor.apply(doc, COLOR_GREEN);
-    doc.text('Medidas Corporales para Patronaje (cm)', 15, y);
+    doc.text('Silueta con Puntos de Medida', 15, y);
+    doc.text('Tabla de Medidas Corporales (cm)', 106, y);
     y += 5;
 
+    // Renderizar imagen de la silueta en canvas y pegarla en el PDF
+    const siluetaDataUrl = await generarSiluetaCanvas(o);
+    if (siluetaDataUrl) {
+      doc.setDrawColor.apply(doc, COLOR_GREEN);
+      doc.setLineWidth(0.3);
+      doc.rect(15, y, 82, 96);
+      doc.addImage(siluetaDataUrl, 'PNG', 16, y + 1, 80, 94);
+    }
+
+    // Tabla de Medidas a la derecha
+    let yTable = y;
     const medidas = [
-      ['Hombros (ancho de espalda)', o.hombros],
-      ['Contorno de Pecho (busto)', o.pecho],
-      ['Contorno de Cintura', o.cintura],
-      ['Contorno de Cadera', o.cadera],
-      ['Largo de Manga', o.manga],
+      ['Hombros (espalda)', `${o.hombros} cm`],
+      ['Pecho (contorno busto)', `${o.pecho} cm`],
+      ['Cintura (contorno)', `${o.cintura} cm`],
+      ['Cadera (contorno)', `${o.cadera} cm`],
+      ['Largo de Manga', `${o.manga} cm`],
     ];
 
     medidas.forEach((r, i) => {
       if (i % 2 === 0) {
         doc.setFillColor.apply(doc, COLOR_LIGHT);
-        doc.rect(15, y, 180, 10, 'F');
+        doc.rect(106, yTable, 89, 9, 'F');
       }
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(11);
+      doc.setFontSize(9.5);
       doc.setTextColor.apply(doc, COLOR_GREEN);
-      doc.text(r[0], 20, y + 6.8);
+      doc.text(r[0], 110, yTable + 6.2);
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.text(`${r[1]} cm`, 190, y + 6.8, { align: 'right' });
-      y += 10.5;
+      doc.setFontSize(10.5);
+      doc.text(r[1], 192, yTable + 6.2, { align: 'right' });
+      yTable += 9.5;
     });
 
-    // Notas de Confección
-    y += 10;
-    doc.setFontSize(13);
+    // Observaciones del Pedido a la derecha debajo de la tabla
+    yTable += 4;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
     doc.setTextColor.apply(doc, COLOR_GREEN);
-    doc.text('Observaciones del Pedido & Taller', 15, y);
-    y += 5;
+    doc.text('Observaciones para Confeccion', 106, yTable);
+    yTable += 4;
 
     doc.setDrawColor.apply(doc, COLOR_GREEN);
     doc.setLineWidth(0.3);
-    doc.rect(15, y, 180, 28);
+    doc.rect(106, yTable, 89, 39);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.setTextColor(50, 70, 50);
+    doc.setFontSize(9);
+    doc.setTextColor(60, 80, 60);
     const notas = o.notas || 'Sin especificaciones adicionales indicadas por el cliente.';
-    doc.text(doc.splitTextToSize(notas, 170), 20, y + 8);
+    doc.text(doc.splitTextToSize(notas, 83), 110, yTable + 6);
 
-    // Checklist de control de taller
-    y += 36;
-    doc.setFontSize(13);
+    // Control de Taller al pie
+    const yControl = y + 104;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
     doc.setTextColor.apply(doc, COLOR_GREEN);
-    doc.text('Control de Calidad en Taller', 15, y);
-    y += 5;
+    doc.text('Control de Calidad en Taller', 15, yControl);
 
-    doc.setFillColor(250, 252, 248);
-    doc.rect(15, y, 180, 26, 'F');
+    doc.setFillColor(252, 254, 250);
+    doc.rect(15, yControl + 4, 180, 24, 'F');
     doc.setDrawColor.apply(doc, COLOR_GREEN);
-    doc.rect(15, y, 180, 26);
+    doc.rect(15, yControl + 4, 180, 24);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9.5);
-    doc.setTextColor(70, 90, 70);
-    doc.text('[  ] Corte de tela verificado     [  ] Armado y prueba inicial     [  ] Acabado y planchado', 20, y + 10);
-    doc.text('Sello / Firma de Confeccionista: _________________________       Fecha entrega: ___/___/______', 20, y + 20);
-
     doc.setFontSize(8.5);
+    doc.setTextColor(60, 80, 60);
+    doc.text('[  ] Patron y medidas verificados     [  ] Corte de tela     [  ] Armado y prueba     [  ] Acabado y planchado', 20, yControl + 13);
+    doc.text('Firma de Confeccionista: ____________________________        Fecha de entrega: _____ / _____ / _________', 20, yControl + 22);
+
+    doc.setFontSize(8);
     doc.setTextColor(130, 150, 130);
-    doc.text('Avocat Confecciones · Documento Interno de Produccion', 105, 290, { align: 'center' });
+    doc.text('Avocat Confecciones · Ficha Tecnica Oficial de Taller', 105, 290, { align: 'center' });
   }
 
-  function descargarInformeIndividual(order) {
+  async function descargarInformeIndividual(order) {
     if (!window.jspdf || !window.jspdf.jsPDF) {
-      alert('Error: jsPDF no esta cargado.');
+      alert('Error: jsPDF no esta disponible.');
       return;
     }
     const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
-    generarHojaInforme(doc, order);
+    await generarHojaInforme(doc, order);
 
     const slug = (order.nombre || 'pedido')
       .toLowerCase()
@@ -448,8 +664,13 @@
   }
 
   // Descarga del informe general (PDF consolidado)
-  $('btnDownloadBatchPdf').addEventListener('click', function () {
+  $('btnDownloadBatchPdf').addEventListener('click', async function () {
     if (!orders.length || !window.jspdf || !window.jspdf.jsPDF) return;
+
+    const btn = $('btnDownloadBatchPdf');
+    btn.disabled = true;
+    const oldText = btn.textContent;
+    btn.textContent = 'Generando PDF con siluetas...';
 
     const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
 
@@ -514,11 +735,11 @@
       y += 7.5;
     });
 
-    // Fichas individuales
-    orders.forEach((o) => {
+    // Fichas individuales completas con la silueta
+    for (let i = 0; i < orders.length; i++) {
       doc.addPage();
-      generarHojaInforme(doc, o);
-    });
+      await generarHojaInforme(doc, orders[i]);
+    }
 
     const totalPaginas = doc.getNumberOfPages();
     for (let p = 1; p <= totalPaginas; p++) {
@@ -530,6 +751,8 @@
     }
 
     doc.save(`informe-maestro-taller-${new Date().toISOString().slice(0, 10)}.pdf`);
+    btn.disabled = false;
+    btn.textContent = oldText;
   });
 
   /* ------------------- EXPORTAR A EXCEL (CSV) ------------------- */

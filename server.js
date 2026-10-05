@@ -21,7 +21,15 @@ const MIME_TYPES = {
 };
 
 // Polyfill Vercel-like res helper methods for standalone local node server
-function enhanceResponse(res) {
+function enhanceResponse(req, res) {
+  const origin = req.headers.origin || '*';
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST,DELETE');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, x-admin-user, x-admin-pass, x-admin-token, authorization'
+  );
+
   res.status = function (code) {
     res.statusCode = code;
     return res;
@@ -35,11 +43,17 @@ function enhanceResponse(res) {
 }
 
 const server = http.createServer(async (req, res) => {
-  enhanceResponse(res);
+  enhanceResponse(req, res);
 
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = parsedUrl.pathname;
   req.query = Object.fromEntries(parsedUrl.searchParams);
+
+  // Preflight CORS OPTIONS
+  if (req.method === 'OPTIONS') {
+    res.statusCode = 200;
+    return res.end();
+  }
 
   // Read request body for POST/PUT/DELETE
   let bodyData = '';

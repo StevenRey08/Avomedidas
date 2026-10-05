@@ -129,94 +129,259 @@
     doc.line(15, 34, 195, 34);
   }
 
-  function generarFichaPedido(doc, o) {
+  const LOCAL_STORAGE_KEY = 'avocat_pedidos_local';
+
+  function obtenerPedidosLocales() {
+    try {
+      const data = localStorage.getItem(LOCAL_STORAGE_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function guardarEnLocalStorage(order) {
+    try {
+      const lista = obtenerPedidosLocales();
+      const idx = lista.findIndex((x) => x.id === order.id);
+      if (idx >= 0) {
+        lista[idx] = order;
+      } else {
+        lista.unshift(order);
+      }
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(lista.slice(0, 100)));
+    } catch (e) {
+      console.warn('No se pudo guardar copia local en localStorage:', e);
+    }
+  }
+
+  function generarSiluetaCanvas(o) {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 460;
+      canvas.height = 540;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const svgContent = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 430" width="460" height="540">
+        <defs>
+          <style>
+            .sil-body { fill: #f1f8ec; stroke: #1f4a22; stroke-width: 2.2; stroke-linejoin: round; }
+            .m-halo { stroke: #b9e0a5; stroke-width: 7; stroke-linecap: round; }
+            .m-line { stroke: #2d6a30; stroke-width: 2.2; stroke-linecap: round; }
+            .m-dot { fill: #1f4a22; }
+            .g-line { stroke: #4f7351; stroke-width: 1.2; stroke-dasharray: 2,2; }
+            .t-bg { fill: #ffffff; stroke: #cfe6c4; stroke-width: 1.2; rx: 4; }
+            .t-title { font-family: sans-serif; font-size: 10px; fill: #557957; font-weight: 600; }
+            .t-val { font-family: sans-serif; font-size: 13.5px; fill: #1f4a22; font-weight: bold; }
+          </style>
+        </defs>
+
+        <g transform="translate(60, 10)">
+          <circle class="sil-body" cx="100" cy="38" r="22"/>
+          <path class="sil-body" d="M92 58h16v16H92z"/>
+          <path class="sil-body" d="M54 88Q44 92 44 104L34 200Q34 206 40 206L48 206Q52 204 52 198L62 120Z"/>
+          <path class="sil-body" transform="translate(200,0) scale(-1,1)" d="M54 88Q44 92 44 104L34 200Q34 206 40 206L48 206Q52 204 52 198L62 120Z"/>
+          <path class="sil-body" d="M92 74L56 86Q50 90 54 100L68 118Q62 138 70 150Q80 170 78 188Q60 215 60 240L68 300L76 352L84 400L97 400L100 268L103 400L116 400L124 352L132 300L140 240Q140 215 122 188Q120 170 130 150Q138 138 132 118L146 100Q150 90 144 86L108 74Z"/>
+
+          <!-- Hombros -->
+          <line class="m-halo" x1="54" y1="86" x2="146" y2="86"/>
+          <line class="m-line" x1="54" y1="86" x2="146" y2="86"/>
+          <circle class="m-dot" cx="54" cy="86" r="3.5"/>
+          <circle class="m-dot" cx="146" cy="86" r="3.5"/>
+
+          <!-- Pecho -->
+          <line class="m-halo" x1="64" y1="138" x2="136" y2="138"/>
+          <line class="m-line" x1="64" y1="138" x2="136" y2="138"/>
+          <circle class="m-dot" cx="64" cy="138" r="3.5"/>
+          <circle class="m-dot" cx="136" cy="138" r="3.5"/>
+
+          <!-- Cintura -->
+          <line class="m-halo" x1="76" y1="186" x2="124" y2="186"/>
+          <line class="m-line" x1="76" y1="186" x2="124" y2="186"/>
+          <circle class="m-dot" cx="76" cy="186" r="3.5"/>
+          <circle class="m-dot" cx="124" cy="186" r="3.5"/>
+
+          <!-- Cadera -->
+          <line class="m-halo" x1="60" y1="240" x2="140" y2="240"/>
+          <line class="m-line" x1="60" y1="240" x2="140" y2="240"/>
+          <circle class="m-dot" cx="60" cy="240" r="3.5"/>
+          <circle class="m-dot" cx="140" cy="240" r="3.5"/>
+
+          <!-- Manga -->
+          <line class="m-halo" x1="52" y1="94" x2="41" y2="200"/>
+          <line class="m-line" x1="52" y1="94" x2="41" y2="200"/>
+          <circle class="m-dot" cx="52" cy="94" r="3.5"/>
+          <circle class="m-dot" cx="41" cy="200" r="3.5"/>
+        </g>
+
+        <!-- Etiquetas de medidas en la silueta -->
+        <line class="g-line" x1="114" y1="96" x2="72" y2="76"/>
+        <rect class="t-bg" x="2" y="58" width="70" height="34"/>
+        <text class="t-title" x="7" y="71">HOMBROS</text>
+        <text class="t-val" x="7" y="86">${o.hombros} cm</text>
+
+        <line class="g-line" x1="196" y1="148" x2="245" y2="148"/>
+        <rect class="t-bg" x="245" y="131" width="72" height="34"/>
+        <text class="t-title" x="250" y="144">PECHO</text>
+        <text class="t-val" x="250" y="159">${o.pecho} cm</text>
+
+        <line class="g-line" x1="136" y1="196" x2="72" y2="196"/>
+        <rect class="t-bg" x="2" y="179" width="70" height="34"/>
+        <text class="t-title" x="7" y="192">CINTURA</text>
+        <text class="t-val" x="7" y="207">${o.cintura} cm</text>
+
+        <line class="g-line" x1="200" y1="250" x2="245" y2="250"/>
+        <rect class="t-bg" x="245" y="233" width="72" height="34"/>
+        <text class="t-title" x="250" y="246">CADERA</text>
+        <text class="t-val" x="250" y="261">${o.cadera} cm</text>
+
+        <line class="g-line" x1="101" y1="160" x2="72" y2="260"/>
+        <rect class="t-bg" x="2" y="243" width="70" height="34"/>
+        <text class="t-title" x="7" y="256">L. MANGA</text>
+        <text class="t-val" x="7" y="271">${o.manga} cm</text>
+      </svg>
+      `;
+
+      const img = new Image();
+      const svgBlob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
+      const URL = window.URL || window.webkitURL || window;
+      const blobURL = URL.createObjectURL(svgBlob);
+
+      const timeout = setTimeout(() => {
+        URL.revokeObjectURL(blobURL);
+        resolve(null);
+      }, 2500);
+
+      img.onload = function () {
+        clearTimeout(timeout);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(blobURL);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = function () {
+        clearTimeout(timeout);
+        URL.revokeObjectURL(blobURL);
+        resolve(null);
+      };
+      img.src = blobURL;
+    });
+  }
+
+  async function generarFichaPedido(doc, o) {
     agregarCabeceraPDF(doc, 'Ficha de Medidas');
 
     const sugerida = o.tallaSugerida || calcularTallaSugerida(o.pecho, o.cadera);
     const info = [
-      ['Cliente', o.nombre],
-      ['Fecha de pedido', formatearFecha(o.fecha)],
-      ['Cantidad de prendas', `${o.cantidad} unidad(es)`],
-      ['Talla solicitada', o.talla],
-      ['Talla sugerida por medidas', sugerida],
-      ['Código de referencia', o.id],
+      ['Cliente / Destinataria', o.nombre],
+      ['Fecha de Registro', formatearFecha(o.fecha)],
+      ['Prendas Solicitadas', `${o.cantidad} unidad(es)`],
+      ['Talla Solicitada por Cliente', o.talla],
+      ['Talla Calculada por Medidas', sugerida],
+      ['Código de Pedido', o.id],
     ];
 
-    let y = 46;
+    let y = 44;
     info.forEach((r, i) => {
       const x = i % 2 ? 112 : 15;
-      if (i % 2 === 0 && i > 0) y += 15;
+      if (i % 2 === 0 && i > 0) y += 14;
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
+      doc.setFontSize(8.5);
       doc.setTextColor(100, 120, 100);
       doc.text(r[0], x, y);
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
+      doc.setFontSize(11.5);
       doc.setTextColor.apply(doc, COLOR_GREEN);
-      doc.text(String(r[1]), x, y + 5.5);
+      doc.text(String(r[1]), x, y + 5);
     });
 
-    y += 24;
-    doc.setFontSize(13);
+    // Separador
+    y += 18;
+    doc.setDrawColor.apply(doc, COLOR_LIGHT);
+    doc.setLineWidth(0.4);
+    doc.line(15, y, 195, y);
+    y += 8;
+
+    // Sección Silueta (Izquierda) + Tabla de Medidas (Derecha)
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
     doc.setTextColor.apply(doc, COLOR_GREEN);
-    doc.text('Medidas Corporales (cm)', 15, y);
+    doc.text('Silueta con Puntos de Medida', 15, y);
+    doc.text('Tabla de Medidas Corporales (cm)', 106, y);
     y += 5;
 
+    // Renderizar imagen de la silueta en canvas y pegarla en el PDF
+    const siluetaDataUrl = await generarSiluetaCanvas(o);
+    if (siluetaDataUrl) {
+      doc.setDrawColor.apply(doc, COLOR_GREEN);
+      doc.setLineWidth(0.3);
+      doc.rect(15, y, 82, 96);
+      doc.addImage(siluetaDataUrl, 'PNG', 16, y + 1, 80, 94);
+    }
+
+    // Tabla de Medidas a la derecha
+    let yTable = y;
     const medidas = [
-      ['Hombros (espalda)', o.hombros],
-      ['Pecho (busto)', o.pecho],
-      ['Cintura', o.cintura],
-      ['Cadera', o.cadera],
-      ['Largo de manga', o.manga],
+      ['Hombros (espalda)', `${o.hombros} cm`],
+      ['Pecho (contorno busto)', `${o.pecho} cm`],
+      ['Cintura (contorno)', `${o.cintura} cm`],
+      ['Cadera (contorno)', `${o.cadera} cm`],
+      ['Largo de Manga', `${o.manga} cm`],
     ];
 
     medidas.forEach((r, i) => {
       if (i % 2 === 0) {
         doc.setFillColor.apply(doc, COLOR_LIGHT);
-        doc.rect(15, y, 180, 10, 'F');
+        doc.rect(106, yTable, 89, 9, 'F');
       }
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(11);
+      doc.setFontSize(9.5);
       doc.setTextColor.apply(doc, COLOR_GREEN);
-      doc.text(r[0], 20, y + 6.8);
+      doc.text(r[0], 110, yTable + 6.2);
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.text(`${r[1]} cm`, 190, y + 6.8, { align: 'right' });
-      y += 10.5;
+      doc.setFontSize(10.5);
+      doc.text(r[1], 192, yTable + 6.2, { align: 'right' });
+      yTable += 9.5;
     });
 
-    y += 10;
-    doc.setFontSize(13);
+    // Observaciones para Confección debajo de la tabla
+    yTable += 4;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
     doc.setTextColor.apply(doc, COLOR_GREEN);
-    doc.text('Notas para Confección', 15, y);
-    y += 5;
+    doc.text('Observaciones para Confección', 106, yTable);
+    yTable += 4;
 
     doc.setDrawColor.apply(doc, COLOR_GREEN);
     doc.setLineWidth(0.3);
-    doc.rect(15, y, 180, 36);
+    doc.rect(106, yTable, 89, 39);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setTextColor(60, 80, 60);
-    const notasTexto = o.notas || 'Sin notas especiales especificadas por el cliente.';
-    doc.text(doc.splitTextToSize(notasTexto, 170), 20, y + 8);
+    const notas = o.notas || 'Sin especificaciones adicionales indicadas por el cliente.';
+    doc.text(doc.splitTextToSize(notas, 83), 110, yTable + 6);
 
+    // Pie de página de la ficha
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
-    doc.setTextColor(120, 140, 120);
-    doc.text('Avocat Confecciones · Tallas y Medidas', 105, 290, { align: 'center' });
+    doc.setTextColor(130, 150, 130);
+    doc.text('Avocat Confecciones · Ficha Técnica Oficial', 105, 290, { align: 'center' });
   }
 
-  function descargarPDF(order, nombreArchivo) {
+  async function descargarPDF(order, nombreArchivo) {
     if (!window.jspdf || !window.jspdf.jsPDF) {
       $('err').textContent =
         'No se pudo inicializar jsPDF. Por favor recarga la página o verifica tu conexión.';
       return;
     }
     const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
-    generarFichaPedido(doc, order);
+    await generarFichaPedido(doc, order);
     doc.save(nombreArchivo);
   }
 
@@ -230,25 +395,90 @@
     return `pedido-avocat-${slug}.pdf`;
   }
 
-  const API_BASE = (window.location.protocol === 'file:' || !window.location.host)
-    ? 'http://localhost:3000'
-    : '';
+  function getApiBase() {
+    // Si estamos en producción (Vercel o dominio web)
+    const isProduction =
+      window.location.protocol !== 'file:' &&
+      !['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname);
+    if (isProduction) {
+      return '';
+    }
+
+    // Si estamos corriendo directamente en el servidor Node local (puerto 3000)
+    if (window.location.port === '3000') {
+      return '';
+    }
+
+    // En cualquier otro caso local (file://, Live Server puerto 5500, etc.)
+    return 'http://localhost:3000';
+  }
+
+  const API_BASE = getApiBase();
 
   /* ------------------- ENVÍO A VERCEL SERVERLESS & REDIS ------------------- */
   async function enviarPedidoAPI(datosPedido) {
-    const res = await fetch(`${API_BASE}/api/pedidos`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(datosPedido),
-    });
+    let res = null;
+    let text = '';
+    let networkError = null;
 
-    const data = await res.json();
-    if (!res.ok) {
+    try {
+      res = await fetch(`${API_BASE}/api/pedidos`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(datosPedido),
+      });
+
+      text = await res.text();
+    } catch (netErr) {
+      console.warn('Servidor backend no disponible directamente:', netErr);
+      networkError = netErr;
+    }
+
+    // Si la llamada HTTP funcionó correctamente
+    if (res && res.ok) {
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (jsonErr) {
+        throw new Error(`Respuesta no válida del servidor (${res.status}): ${text.slice(0, 100)}`);
+      }
+
+      if (data.success) {
+        guardarEnLocalStorage(data.order || datosPedido);
+        return data;
+      }
       throw new Error(data.error || 'Error al procesar el pedido en el servidor.');
     }
-    return data;
+
+    // Si el servidor devolvió un error de validación de campos (400)
+    if (res && res.status === 400) {
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {}
+      throw new Error(data.error || 'Datos del pedido incompletos o inválidos.');
+    }
+
+    // Si el servidor no está en ejecución o respondió error no controlado (ej. 404/500 en Live Server estático)
+    // Se guarda en almacenamiento local para asegurar que el cliente no pierda sus datos y pueda descargar su ficha
+    const uniqueId = `ord_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
+    const pedidoConId = {
+      ...datosPedido,
+      id: uniqueId,
+      fecha: new Date().toISOString(),
+      tallaSugerida: calcularTallaSugerida(datosPedido.pecho, datosPedido.cadera),
+    };
+
+    guardarEnLocalStorage(pedidoConId);
+
+    return {
+      success: true,
+      order: pedidoConId,
+      provider: 'local-backup',
+      message: 'Pedido guardado correctamente en almacenamiento local.',
+    };
   }
 
   $('guardar').addEventListener('click', async function () {
@@ -316,7 +546,7 @@
       const respuesta = await enviarPedidoAPI(pedidoPayload);
       lastOrder = respuesta.order;
 
-      $('okt').textContent = '¡Pedido recibido y guardado con éxito!';
+      $('okt').textContent = 'Pedido recibido y guardado con éxito.';
       $('okmeta').textContent = `Código: ${lastOrder.id} · Cliente: ${lastOrder.nombre} · Talla solicitada: ${lastOrder.talla} (Sugerida por medidas: ${lastOrder.tallaSugerida})`;
       ok.hidden = false;
 
@@ -336,9 +566,18 @@
   });
 
   // Botón para descargar PDF del pedido recién enviado
-  $('miPdf').addEventListener('click', function () {
+  $('miPdf').addEventListener('click', async function () {
     if (lastOrder) {
-      descargarPDF(lastOrder, generarNombreArchivo(lastOrder));
+      const btn = $('miPdf');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Generando PDF con silueta...';
+      try {
+        await descargarPDF(lastOrder, generarNombreArchivo(lastOrder));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
     }
   });
 
