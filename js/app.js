@@ -536,11 +536,14 @@
 
     const btn = $('guardar');
     const btnText = btn.querySelector('.btn-text');
-    const btnSpinner = btn.querySelector('.btn-spinner');
+    const btnSpinner = $('btnSpinner') || btn.querySelector('.btn-spinner');
 
     btn.disabled = true;
     btnText.textContent = 'Guardando pedido...';
-    btnSpinner.hidden = false;
+    if (btnSpinner) {
+      btnSpinner.classList.add('is-loading');
+      btnSpinner.style.display = 'inline-block';
+    }
 
     try {
       const respuesta = await enviarPedidoAPI(pedidoPayload);
@@ -561,7 +564,10 @@
     } finally {
       btn.disabled = false;
       btnText.textContent = 'Enviar mi pedido';
-      btnSpinner.hidden = true;
+      if (btnSpinner) {
+        btnSpinner.classList.remove('is-loading');
+        btnSpinner.style.display = 'none';
+      }
     }
   });
 

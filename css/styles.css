@@ -372,13 +372,19 @@ button.link-btn:hover {
 
 /* Spinner de carga */
 .btn-spinner {
+  display: none !important;
   width: 16px;
   height: 16px;
   border: 2px solid rgba(255, 255, 255, 0.35);
   border-radius: 50%;
   border-top-color: #fff;
   animation: spin 0.75s linear infinite;
-  display: inline-block;
+  vertical-align: middle;
+  margin-left: 8px;
+}
+
+.btn-spinner.is-loading {
+  display: inline-block !important;
 }
 
 @keyframes spin {
