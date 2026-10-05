@@ -7,10 +7,10 @@
 (function () {
   const $ = (id) => document.getElementById(id);
 
-  // Tablas de tallas para el cálculo sugerido
+  // Tablas de tallas para el cálculo sugerido (en pulgadas)
   const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-  const BUST = [84, 89, 94, 99, 106, 999];
-  const HIP = [89, 94, 99, 104, 111, 999];
+  const BUST = [33, 35, 37, 39, 42, 999];
+  const HIP = [35, 37, 39, 41, 44, 999];
 
   const ZONES = {
     hombros: 'Hombros (de un hombro al otro, por la espalda)',
@@ -222,27 +222,27 @@
         <line class="g-line" x1="114" y1="96" x2="72" y2="76"/>
         <rect class="t-bg" x="2" y="58" width="70" height="34"/>
         <text class="t-title" x="7" y="71">HOMBROS</text>
-        <text class="t-val" x="7" y="86">${o.hombros} cm</text>
+        <text class="t-val" x="7" y="86">${o.hombros} in</text>
 
         <line class="g-line" x1="196" y1="148" x2="245" y2="148"/>
         <rect class="t-bg" x="245" y="131" width="72" height="34"/>
         <text class="t-title" x="250" y="144">PECHO</text>
-        <text class="t-val" x="250" y="159">${o.pecho} cm</text>
+        <text class="t-val" x="250" y="159">${o.pecho} in</text>
 
         <line class="g-line" x1="136" y1="196" x2="72" y2="196"/>
         <rect class="t-bg" x="2" y="179" width="70" height="34"/>
         <text class="t-title" x="7" y="192">CINTURA</text>
-        <text class="t-val" x="7" y="207">${o.cintura} cm</text>
+        <text class="t-val" x="7" y="207">${o.cintura} in</text>
 
         <line class="g-line" x1="200" y1="250" x2="245" y2="250"/>
         <rect class="t-bg" x="245" y="233" width="72" height="34"/>
         <text class="t-title" x="250" y="246">CADERA</text>
-        <text class="t-val" x="250" y="261">${o.cadera} cm</text>
+        <text class="t-val" x="250" y="261">${o.cadera} in</text>
 
         <line class="g-line" x1="101" y1="160" x2="72" y2="260"/>
         <rect class="t-bg" x="2" y="243" width="70" height="34"/>
         <text class="t-title" x="7" y="256">L. MANGA</text>
-        <text class="t-val" x="7" y="271">${o.manga} cm</text>
+        <text class="t-val" x="7" y="271">${o.manga} in</text>
       </svg>
       `;
 
@@ -311,7 +311,7 @@
     doc.setFontSize(12);
     doc.setTextColor.apply(doc, COLOR_GREEN);
     doc.text('Silueta con Puntos de Medida', 15, y);
-    doc.text('Tabla de Medidas Corporales (cm)', 106, y);
+    doc.text('Tabla de Medidas Corporales (pulgadas)', 106, y);
     y += 5;
 
     // Renderizar imagen de la silueta en canvas y pegarla en el PDF
@@ -326,11 +326,11 @@
     // Tabla de Medidas a la derecha
     let yTable = y;
     const medidas = [
-      ['Hombros (espalda)', `${o.hombros} cm`],
-      ['Pecho (contorno busto)', `${o.pecho} cm`],
-      ['Cintura (contorno)', `${o.cintura} cm`],
-      ['Cadera (contorno)', `${o.cadera} cm`],
-      ['Largo de Manga', `${o.manga} cm`],
+      ['Hombros (espalda)', `${o.hombros} in`],
+      ['Pecho (contorno busto)', `${o.pecho} in`],
+      ['Cintura (contorno)', `${o.cintura} in`],
+      ['Cadera (contorno)', `${o.cadera} in`],
+      ['Largo de Manga', `${o.manga} in`],
     ];
 
     medidas.forEach((r, i) => {

@@ -294,9 +294,9 @@
         <td><span class="tag-size">${escapeHTML(o.talla)}</span></td>
         <td><span class="tag-suggested">${escapeHTML(o.tallaSugerida || '-')}</span></td>
         <td class="measurements-block">
-          <span>Pecho:</span> ${o.pecho} cm · <span>Cint:</span> ${o.cintura} cm<br>
-          <span>Cadera:</span> ${o.cadera} cm · <span>Homb:</span> ${o.hombros} cm<br>
-          <span>Manga:</span> ${o.manga} cm
+          <span>Pecho:</span> ${o.pecho}" · <span>Cint:</span> ${o.cintura}"<br>
+          <span>Cadera:</span> ${o.cadera}" · <span>Homb:</span> ${o.hombros}"<br>
+          <span>Manga:</span> ${o.manga}"
         </td>
         <td class="notes-text" title="${escapeHTML(o.notas || 'Sin notas especiales')}">
           ${escapeHTML(o.notas || '—')}
@@ -484,27 +484,27 @@
         <line class="g-line" x1="114" y1="96" x2="72" y2="76"/>
         <rect class="t-bg" x="2" y="58" width="70" height="34"/>
         <text class="t-title" x="7" y="71">HOMBROS</text>
-        <text class="t-val" x="7" y="86">${o.hombros} cm</text>
+        <text class="t-val" x="7" y="86">${o.hombros} in</text>
 
         <line class="g-line" x1="196" y1="148" x2="245" y2="148"/>
         <rect class="t-bg" x="245" y="131" width="72" height="34"/>
         <text class="t-title" x="250" y="144">PECHO</text>
-        <text class="t-val" x="250" y="159">${o.pecho} cm</text>
+        <text class="t-val" x="250" y="159">${o.pecho} in</text>
 
         <line class="g-line" x1="136" y1="196" x2="72" y2="196"/>
         <rect class="t-bg" x="2" y="179" width="70" height="34"/>
         <text class="t-title" x="7" y="192">CINTURA</text>
-        <text class="t-val" x="7" y="207">${o.cintura} cm</text>
+        <text class="t-val" x="7" y="207">${o.cintura} in</text>
 
         <line class="g-line" x1="200" y1="250" x2="245" y2="250"/>
         <rect class="t-bg" x="245" y="233" width="72" height="34"/>
         <text class="t-title" x="250" y="246">CADERA</text>
-        <text class="t-val" x="250" y="261">${o.cadera} cm</text>
+        <text class="t-val" x="250" y="261">${o.cadera} in</text>
 
         <line class="g-line" x1="101" y1="160" x2="72" y2="260"/>
         <rect class="t-bg" x="2" y="243" width="70" height="34"/>
         <text class="t-title" x="7" y="256">L. MANGA</text>
-        <text class="t-val" x="7" y="271">${o.manga} cm</text>
+        <text class="t-val" x="7" y="271">${o.manga} in</text>
       </svg>
       `;
 
@@ -566,7 +566,7 @@
     doc.setFontSize(12);
     doc.setTextColor.apply(doc, COLOR_GREEN);
     doc.text('Silueta con Puntos de Medida', 15, y);
-    doc.text('Tabla de Medidas Corporales (cm)', 106, y);
+    doc.text('Tabla de Medidas Corporales (pulgadas)', 106, y);
     y += 5;
 
     // Renderizar imagen de la silueta en canvas y pegarla en el PDF
@@ -581,11 +581,11 @@
     // Tabla de Medidas a la derecha
     let yTable = y;
     const medidas = [
-      ['Hombros (espalda)', `${o.hombros} cm`],
-      ['Pecho (contorno busto)', `${o.pecho} cm`],
-      ['Cintura (contorno)', `${o.cintura} cm`],
-      ['Cadera (contorno)', `${o.cadera} cm`],
-      ['Largo de Manga', `${o.manga} cm`],
+      ['Hombros (espalda)', `${o.hombros} in`],
+      ['Pecho (contorno busto)', `${o.pecho} in`],
+      ['Cintura (contorno)', `${o.cintura} in`],
+      ['Cadera (contorno)', `${o.cadera} in`],
+      ['Largo de Manga', `${o.manga} in`],
     ];
 
     medidas.forEach((r, i) => {
@@ -766,11 +766,11 @@
       'Cantidad',
       'Talla Pedida',
       'Talla Sugerida',
-      'Pecho (cm)',
-      'Cintura (cm)',
-      'Cadera (cm)',
-      'Hombros (cm)',
-      'Largo Manga (cm)',
+      'Pecho (in)',
+      'Cintura (in)',
+      'Cadera (in)',
+      'Hombros (in)',
+      'Largo Manga (in)',
       'Notas',
     ];
 

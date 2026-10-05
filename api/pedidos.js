@@ -6,9 +6,10 @@ import {
   getRedisStatus,
 } from './_redis.js';
 
+// Umbrales de tallas en pulgadas (in)
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-const BUST_THRESHOLDS = [84, 89, 94, 99, 106, 999];
-const HIP_THRESHOLDS = [89, 94, 99, 104, 111, 999];
+const BUST_THRESHOLDS = [33, 35, 37, 39, 42, 999];
+const HIP_THRESHOLDS = [35, 37, 39, 41, 44, 999];
 
 function getIndex(val, arr) {
   for (let i = 0; i < arr.length; i++) {
@@ -172,13 +173,13 @@ export default async function handler(req, res) {
 
       const medidas = { pecho, cintura, cadera, hombros, manga };
       const faltantes = Object.keys(medidas).filter(
-        (m) => isNaN(medidas[m]) || medidas[m] <= 0 || medidas[m] > 300
+        (m) => isNaN(medidas[m]) || medidas[m] <= 0 || medidas[m] > 120
       );
 
       if (faltantes.length > 0) {
         return res.status(400).json({
           success: false,
-          error: `Las siguientes medidas son inválidas o están incompletas: ${faltantes.join(', ')}. Deben ser valores numéricos válidos en cm.`,
+          error: `Las siguientes medidas son inválidas o están incompletas: ${faltantes.join(', ')}. Deben ser valores numéricos válidos en pulgadas (in).`,
         });
       }
 
