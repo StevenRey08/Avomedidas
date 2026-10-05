@@ -1,0 +1,26 @@
+{
+  "name": "avomedidas",
+  "version": "1.0.0",
+  "description": "Sistema de medidas y tallas para Avocat con Vercel Serverless Functions y Redis",
+  "main": "api/pedidos.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "node server.js"
+  },
+  "keywords": [
+    "avocat",
+    "medidas",
+    "tallas",
+    "vercel",
+    "serverless",
+    "redis",
+    "upstash"
+  ],
+  "author": "StevenRey08",
+  "license": "MIT",
+  "dependencies": {
+    "@upstash/redis": "^1.34.3",
+    "ioredis": "^5.4.1"
+  }
+}
