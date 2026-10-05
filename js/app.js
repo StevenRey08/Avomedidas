@@ -230,9 +230,13 @@
     return `pedido-avocat-${slug}.pdf`;
   }
 
+  const API_BASE = (window.location.protocol === 'file:' || !window.location.host)
+    ? 'http://localhost:3000'
+    : '';
+
   /* ------------------- ENVÍO A VERCEL SERVERLESS & REDIS ------------------- */
   async function enviarPedidoAPI(datosPedido) {
-    const res = await fetch('/api/pedidos', {
+    const res = await fetch(`${API_BASE}/api/pedidos`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

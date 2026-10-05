@@ -14,15 +14,21 @@
   const COLOR_GREEN = [31, 74, 34];
   const COLOR_LIGHT = [241, 248, 236];
 
+  const API_BASE = (window.location.protocol === 'file:' || !window.location.host)
+    ? 'http://localhost:3000'
+    : '';
+
   /* ------------------- AUTENTICACIÓN ------------------- */
   async function iniciarSesion(user, pass) {
     try {
       const token = btoa(`${user}:${pass}`);
-      const res = await fetch('/api/pedidos', {
+      const res = await fetch(`${API_BASE}/api/pedidos`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-admin-token': token,
+          'x-admin-user': user,
+          'x-admin-pass': pass,
         },
         body: JSON.stringify({ action: 'login', user, pass }),
       });
@@ -33,7 +39,14 @@
       }
       return { ok: false, error: data.error || 'Credenciales incorrectas' };
     } catch (e) {
-      return { ok: false, error: 'Error de conexión con el servidor' };
+      console.error('Error de conexion:', e);
+      if (window.location.protocol === 'file:') {
+        return {
+          ok: false,
+          error: 'Has abierto el archivo como file://. Debes entrar desde tu navegador a http://localhost:3000/admin para conectar con el servidor.',
+        };
+      }
+      return { ok: false, error: 'No se pudo conectar con el servidor. Verifica que el servidor este en ejecucion.' };
     }
   }
 
@@ -106,7 +119,7 @@
     $('syncStatus').textContent = 'Sincronizando...';
 
     try {
-      const res = await fetch('/api/pedidos', {
+      const res = await fetch(`${API_BASE}/api/pedidos`, {
         headers: {
           'x-admin-token': authToken,
         },
@@ -247,7 +260,7 @@
 
       btn.disabled = true;
       try {
-        const res = await fetch(`/api/pedidos?id=${encodeURIComponent(id)}`, {
+        const res = await fetch(`${API_BASE}/api/pedidos?id=${encodeURIComponent(id)}`, {
           method: 'DELETE',
           headers: {
             'x-admin-token': authToken,
