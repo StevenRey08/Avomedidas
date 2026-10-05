@@ -97,7 +97,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`\n🚀 Servidor Avomedidas activo en http://localhost:${PORT}`);
-  console.log(`📡 API Serverless disponible en http://localhost:${PORT}/api/pedidos`);
-  console.log(`🩺 Health check disponible en http://localhost:${PORT}/api/health\n`);
+  console.log(`\nServidor Avomedidas activo en http://localhost:${PORT}`);
+  console.log(`API Serverless disponible en http://localhost:${PORT}/api/pedidos`);
+  console.log(`Portal de administracion disponible en http://localhost:${PORT}/admin\n`);
 });

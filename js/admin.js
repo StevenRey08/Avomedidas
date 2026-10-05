@@ -1,106 +1,122 @@
 /**
- * Avocat · Panel de Taller & Confección (Privado)
- * Manejo de pedidos desde Redis y generación de informes de corte en PDF / CSV
+ * Avocat · Panel de Taller y Confección
+ * Gestión privada de pedidos e informes de patronaje
+ * Usuario: avomarca · Contraseña: avo1234
  */
 
 (function () {
   const $ = (id) => document.getElementById(id);
 
   let orders = [];
-  let currentPin = sessionStorage.getItem('avocat_admin_pin') || '';
+  let authToken = sessionStorage.getItem('avocat_admin_token') || '';
+  let authUser = sessionStorage.getItem('avocat_admin_user') || '';
 
   const COLOR_GREEN = [31, 74, 34];
   const COLOR_LIGHT = [241, 248, 236];
 
-  /* ------------------- AUTENTICACIÓN POR PIN ------------------- */
-  async function verificarPin(pin) {
+  /* ------------------- AUTENTICACIÓN ------------------- */
+  async function iniciarSesion(user, pass) {
     try {
+      const token = btoa(`${user}:${pass}`);
       const res = await fetch('/api/pedidos', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-pin': pin,
+          'x-admin-token': token,
         },
-        body: JSON.stringify({ action: 'verify_pin', pin }),
+        body: JSON.stringify({ action: 'login', user, pass }),
       });
+
       const data = await res.json();
-      return data.success === true;
-    } catch {
-      return false;
+      if (res.ok && data.success) {
+        return { ok: true, token, user };
+      }
+      return { ok: false, error: data.error || 'Credenciales incorrectas' };
+    } catch (e) {
+      return { ok: false, error: 'Error de conexión con el servidor' };
     }
   }
 
-  $('pinForm').addEventListener('submit', async function (e) {
+  $('loginForm').addEventListener('submit', async function (e) {
     e.preventDefault();
-    const pin = $('pinInput').value.trim();
-    const errBox = $('pinError');
+    const user = $('userInput').value.trim();
+    const pass = $('passInput').value.trim();
+    const errBox = $('loginError');
     const btn = $('btnEnter');
-    const spinner = btn.querySelector('.btn-spinner');
+    const label = btn.querySelector('.btn-label');
+    const loader = btn.querySelector('.btn-loader');
 
+    errBox.style.display = 'none';
     errBox.textContent = '';
-    if (!pin) {
-      errBox.textContent = 'Por favor escribe el PIN de acceso.';
-      $('pinInput').focus();
+
+    if (!user || !pass) {
+      errBox.textContent = 'Por favor completa usuario y contraseña.';
+      errBox.style.display = 'block';
       return;
     }
 
     btn.disabled = true;
-    spinner.hidden = false;
+    label.textContent = 'Verificando...';
+    loader.style.display = 'inline-block';
 
-    const esValido = await verificarPin(pin);
+    const resultado = await iniciarSesion(user, pass);
 
     btn.disabled = false;
-    spinner.hidden = true;
+    label.textContent = 'Iniciar Sesión';
+    loader.style.display = 'none';
 
-    if (esValido) {
-      currentPin = pin;
-      sessionStorage.setItem('avocat_admin_pin', pin);
+    if (resultado.ok) {
+      authToken = resultado.token;
+      authUser = resultado.user;
+      sessionStorage.setItem('avocat_admin_token', authToken);
+      sessionStorage.setItem('avocat_admin_user', authUser);
       mostrarDashboard();
       cargarPedidos();
     } else {
-      errBox.textContent = 'PIN incorrecto. Revisa el PIN e intenta nuevamente.';
-      $('pinInput').select();
+      errBox.textContent = resultado.error;
+      errBox.style.display = 'block';
+      $('passInput').select();
     }
   });
 
-  // Mostrar / ocultar contraseña
-  $('togglePinVis').addEventListener('click', function () {
-    const input = $('pinInput');
-    input.type = input.type === 'password' ? 'text' : 'password';
-  });
-
   function mostrarDashboard() {
-    $('authSection').hidden = true;
-    $('dashboardSection').hidden = false;
-    $('sessionBar').hidden = false;
+    $('authSection').style.display = 'none';
+    $('dashboardSection').style.display = 'block';
+    $('sessionBar').style.display = 'flex';
+    $('sessionUserLabel').textContent = `Usuario: ${authUser || 'avomarca'}`;
   }
 
   function mostrarLogin() {
-    $('authSection').hidden = false;
-    $('dashboardSection').hidden = true;
-    $('sessionBar').hidden = true;
-    $('pinInput').value = '';
-    $('pinError').textContent = '';
-    sessionStorage.removeItem('avocat_admin_pin');
-    currentPin = '';
+    $('authSection').style.display = 'block';
+    $('dashboardSection').style.display = 'none';
+    $('sessionBar').style.display = 'none';
+    $('userInput').value = '';
+    $('passInput').value = '';
+    $('loginError').style.display = 'none';
+    sessionStorage.removeItem('avocat_admin_token');
+    sessionStorage.removeItem('avocat_admin_user');
+    authToken = '';
+    authUser = '';
   }
 
   $('btnLogout').addEventListener('click', mostrarLogin);
 
-  /* ------------------- CARGA DE DATOS DESDE REDIS ------------------- */
+  /* ------------------- CARGA DE DATOS ------------------- */
   async function cargarPedidos() {
-    $('syncStatus').textContent = 'Sincronizando con Redis...';
+    $('syncStatus').textContent = 'Sincronizando...';
 
     try {
       const res = await fetch('/api/pedidos', {
         headers: {
-          'x-admin-pin': currentPin,
+          'x-admin-token': authToken,
         },
       });
 
       if (res.status === 401) {
         mostrarLogin();
-        $('pinError').textContent = 'La sesión expiró o el PIN ya no es válido.';
+        const errBox = $('loginError');
+        errBox.textContent = 'Sesión expirada. Por favor ingresa de nuevo.';
+        errBox.style.display = 'block';
         return;
       }
 
@@ -109,13 +125,12 @@
       if (data.success && Array.isArray(data.orders)) {
         orders = data.orders;
 
-        // Actualizar métricas
         $('statOrders').textContent = orders.length;
         const totalPrendas = orders.reduce((sum, o) => sum + (parseInt(o.cantidad, 10) || 1), 0);
         $('statGarments').textContent = totalPrendas;
 
         if (data.storage) {
-          $('statStorage').textContent = data.storage.provider || 'Redis';
+          $('statStorage').textContent = data.storage.provider || 'Redis Activo';
           $('statStorage').title = data.storage.status || '';
         }
 
@@ -123,12 +138,13 @@
         $('btnDownloadBatchPdf').disabled = orders.length === 0;
         $('btnExportCsv').disabled = orders.length === 0;
 
-        $('syncStatus').textContent = `✓ Actualizado (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`;
+        const ahora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        $('syncStatus').textContent = `Actualizado a las ${ahora}`;
         renderTabla();
       }
     } catch (err) {
-      $('syncStatus').textContent = '⚠️ Error de sincronización';
-      console.error('Error al cargar pedidos de Redis:', err);
+      $('syncStatus').textContent = 'Error al actualizar';
+      console.error('Error cargando pedidos:', err);
     }
   }
 
@@ -144,7 +160,7 @@
       const coincideTalla = !filtroTalla || o.talla === filtroTalla;
       const coincideBusqueda =
         !busqueda ||
-        o.nombre.toLowerCase().includes(busqueda) ||
+        (o.nombre && o.nombre.toLowerCase().includes(busqueda)) ||
         (o.id && o.id.toLowerCase().includes(busqueda)) ||
         (o.notas && o.notas.toLowerCase().includes(busqueda));
       return coincideTalla && coincideBusqueda;
@@ -153,8 +169,8 @@
     if (orders.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="8" class="empty-state">
-            Aún no se han recibido pedidos de clientas en Redis.
+          <td colspan="8" class="table-empty">
+            Aún no se han recibido pedidos de clientas en la base de datos.
           </td>
         </tr>
       `;
@@ -164,8 +180,8 @@
     if (filtrados.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="8" class="empty-state">
-            No hay pedidos que coincidan con la búsqueda o filtro aplicado.
+          <td colspan="8" class="table-empty">
+            No se encontraron pedidos con el criterio de búsqueda seleccionado.
           </td>
         </tr>
       `;
@@ -182,22 +198,22 @@
         </td>
         <td><strong>${escapeHTML(o.nombre)}</strong></td>
         <td><strong>${o.cantidad}</strong></td>
-        <td><span class="pill-size">${escapeHTML(o.talla)}</span></td>
-        <td><span class="pill-suggested">${escapeHTML(o.tallaSugerida || '-')}</span></td>
-        <td class="measurements-compact">
+        <td><span class="tag-size">${escapeHTML(o.talla)}</span></td>
+        <td><span class="tag-suggested">${escapeHTML(o.tallaSugerida || '-')}</span></td>
+        <td class="measurements-block">
           <span>Pecho:</span> ${o.pecho} cm · <span>Cint:</span> ${o.cintura} cm<br>
           <span>Cadera:</span> ${o.cadera} cm · <span>Homb:</span> ${o.hombros} cm<br>
           <span>Manga:</span> ${o.manga} cm
         </td>
-        <td class="notes-cell" title="${escapeHTML(o.notas || 'Sin notas especiales')}">
+        <td class="notes-text" title="${escapeHTML(o.notas || 'Sin notas especiales')}">
           ${escapeHTML(o.notas || '—')}
         </td>
-        <td class="actions-cell">
-          <button type="button" class="action-btn" data-action="pdf" data-id="${escapeHTML(o.id)}" title="Descargar informe de confección en PDF">
-            📄 Informe PDF
+        <td class="actions-group">
+          <button type="button" class="btn-action" data-action="pdf" data-id="${escapeHTML(o.id)}" title="Descargar informe de confección">
+            Informe PDF
           </button>
-          <button type="button" class="action-btn del" data-action="del" data-id="${escapeHTML(o.id)}" title="Eliminar pedido de Redis">
-            🗑️
+          <button type="button" class="btn-action btn-del" data-action="del" data-id="${escapeHTML(o.id)}" title="Eliminar pedido">
+            Eliminar
           </button>
         </td>
       </tr>
@@ -206,7 +222,6 @@
       .join('');
   }
 
-  // Filtros interactivos
   $('adminSearch').addEventListener('input', renderTabla);
   $('sizeFilter').addEventListener('change', renderTabla);
 
@@ -226,7 +241,7 @@
     }
 
     if (action === 'del') {
-      if (!confirm(`¿Confirmas que deseas eliminar de Redis el pedido de "${order.nombre}" (${order.id})?`)) {
+      if (!confirm(`¿Confirmas que deseas eliminar el pedido de "${order.nombre}" (${order.id})?`)) {
         return;
       }
 
@@ -235,7 +250,7 @@
         const res = await fetch(`/api/pedidos?id=${encodeURIComponent(id)}`, {
           method: 'DELETE',
           headers: {
-            'x-admin-pin': currentPin,
+            'x-admin-token': authToken,
           },
         });
         const data = await res.json();
@@ -243,6 +258,9 @@
           orders = orders.filter((x) => x.id !== id);
           renderTabla();
           $('statOrders').textContent = orders.length;
+          const totalPrendas = orders.reduce((sum, o) => sum + (parseInt(o.cantidad, 10) || 1), 0);
+          $('statGarments').textContent = totalPrendas;
+          $('ordersCountBadge').textContent = orders.length;
         } else {
           alert('Error: ' + (data.error || 'No se pudo eliminar el pedido'));
         }
@@ -301,7 +319,7 @@
   }
 
   function generarHojaInforme(doc, o) {
-    agregarCabecera(doc, 'Informe de Confección');
+    agregarCabecera(doc, 'Informe de Confeccion');
 
     const sugerida = o.tallaSugerida || '-';
     const info = [
@@ -310,7 +328,7 @@
       ['Prendas a Elaborar', `${o.cantidad} pieza(s)`],
       ['Talla Solicitada por Cliente', o.talla],
       ['Talla Calculada por Medidas', sugerida],
-      ['Código Único de Pedido', o.id],
+      ['Codigo Unico de Pedido', o.id],
     ];
 
     let y = 46;
@@ -395,12 +413,12 @@
 
     doc.setFontSize(8.5);
     doc.setTextColor(130, 150, 130);
-    doc.text('Avocat Confecciones · Documento Interno de Producción', 105, 290, { align: 'center' });
+    doc.text('Avocat Confecciones · Documento Interno de Produccion', 105, 290, { align: 'center' });
   }
 
   function descargarInformeIndividual(order) {
     if (!window.jspdf || !window.jspdf.jsPDF) {
-      alert('Error: jsPDF no está cargado.');
+      alert('Error: jsPDF no esta cargado.');
       return;
     }
     const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
@@ -416,13 +434,13 @@
     doc.save(`informe-confeccion-${slug}-${order.id}.pdf`);
   }
 
-  // Descarga del informe general (PDF de todos los pedidos)
+  // Descarga del informe general (PDF consolidado)
   $('btnDownloadBatchPdf').addEventListener('click', function () {
     if (!orders.length || !window.jspdf || !window.jspdf.jsPDF) return;
 
     const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
 
-    // Página 1: Resumen Maestro
+    // Hoja 1: Resumen Maestro
     agregarCabecera(doc, 'Informe Maestro de Taller');
 
     const cols = [
@@ -468,7 +486,7 @@
 
       const fila = [
         i + 1,
-        o.nombre.slice(0, 26),
+        (o.nombre || '').slice(0, 26),
         o.cantidad,
         o.talla,
         o.tallaSugerida || '-',
@@ -483,7 +501,7 @@
       y += 7.5;
     });
 
-    // Añadir hojas individuales para cada cliente
+    // Fichas individuales
     orders.forEach((o) => {
       doc.addPage();
       generarHojaInforme(doc, o);
@@ -495,7 +513,7 @@
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(120, 140, 120);
-      doc.text(`Avocat Confecciones · Página ${p} de ${totalPaginas}`, 105, 290, { align: 'center' });
+      doc.text(`Avocat Confecciones · Pagina ${p} de ${totalPaginas}`, 105, 290, { align: 'center' });
     }
 
     doc.save(`informe-maestro-taller-${new Date().toISOString().slice(0, 10)}.pdf`);
@@ -535,7 +553,6 @@
       `"${(o.notas || '').replace(/"/g, '""')}"`,
     ]);
 
-    // BOM UTF-8 para que Excel reconozca tildes y caracteres especiales automáticamente
     const csvContent = '\uFEFF' + [cabeceras.join(';'), ...filas.map((f) => f.join(';'))].join('\r\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -557,15 +574,9 @@
   }
 
   /* ------------------- INICIALIZACIÓN ------------------- */
-  if (currentPin) {
-    verificarPin(currentPin).then((valido) => {
-      if (valido) {
-        mostrarDashboard();
-        cargarPedidos();
-      } else {
-        mostrarLogin();
-      }
-    });
+  if (authToken && authUser) {
+    mostrarDashboard();
+    cargarPedidos();
   } else {
     mostrarLogin();
   }

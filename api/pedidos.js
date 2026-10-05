@@ -29,22 +29,32 @@ function setCors(res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST,DELETE');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, x-admin-pin, authorization'
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, x-admin-user, x-admin-pass, x-admin-token, authorization'
   );
 }
 
-function verificarPinAdmin(req) {
-  const pinConfigurado = process.env.ADMIN_PIN || process.env.ADMIN_PASSWORD || '1234';
-  const pinRecibido =
-    req.headers['x-admin-pin'] ||
-    req.query?.pin ||
-    req.body?.pin ||
-    (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
+function verificarCredenciales(req) {
+  const userConfig = (process.env.ADMIN_USER || 'avomarca').trim();
+  const passConfig = (process.env.ADMIN_PASSWORD || 'avo1234').trim();
 
-  return {
-    valido: String(pinRecibido) === String(pinConfigurado),
-    pinConfigurado,
-  };
+  let userRecibido = (req.headers['x-admin-user'] || req.query?.user || req.body?.user || '').trim();
+  let passRecibido = (req.headers['x-admin-pass'] || req.query?.pass || req.body?.pass || '').trim();
+
+  // Soporte para token codificado en Base64 (user:pass)
+  const token = req.headers['x-admin-token'] || (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
+  if (token && (!userRecibido || !passRecibido)) {
+    try {
+      const decoded = Buffer.from(token, 'base64').toString('utf-8');
+      const partes = decoded.split(':');
+      if (partes.length >= 2) {
+        userRecibido = partes[0].trim();
+        passRecibido = partes.slice(1).join(':').trim();
+      }
+    } catch {}
+  }
+
+  const esValido = userRecibido === userConfig && passRecibido === passConfig;
+  return { esValido, userConfig, passConfig };
 }
 
 export default async function handler(req, res) {
@@ -55,14 +65,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    // GET: Obtener pedidos (Protegido por PIN para privacidad de los clientes)
+    // GET: Obtener pedidos (Protegido para los dueños del taller)
     if (req.method === 'GET') {
-      const { valido } = verificarPinAdmin(req);
+      const { esValido } = verificarCredenciales(req);
 
-      if (!valido) {
+      if (!esValido) {
         return res.status(401).json({
           success: false,
-          error: 'PIN de acceso no válido o no proporcionado.',
+          error: 'Credenciales de acceso no válidas o no proporcionadas.',
         });
       }
 
@@ -90,7 +100,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // POST: Crear y guardar un nuevo pedido (Público para los clientes)
+    // POST: Iniciar sesión o Guardar nuevo pedido
     if (req.method === 'POST') {
       let body = req.body;
       if (typeof body === 'string') {
@@ -111,15 +121,25 @@ export default async function handler(req, res) {
         });
       }
 
-      // Si es una petición de verificación de PIN desde el panel admin
-      if (body.action === 'verify_pin') {
-        const { valido } = verificarPinAdmin(req);
-        return res.status(200).json({
-          success: valido,
-          message: valido ? 'PIN correcto' : 'PIN incorrecto',
+      // Verificación de credenciales de taller
+      if (body.action === 'login' || body.action === 'verify_pin') {
+        const { esValido, userConfig, passConfig } = verificarCredenciales(req);
+        if (esValido) {
+          const token = Buffer.from(`${userConfig}:${passConfig}`).toString('base64');
+          return res.status(200).json({
+            success: true,
+            message: 'Autenticación exitosa.',
+            token,
+            user: userConfig,
+          });
+        }
+        return res.status(401).json({
+          success: false,
+          error: 'Usuario o contraseña incorrectos.',
         });
       }
 
+      // Guardado de pedido del cliente
       const nombre = (body.nombre || '').trim();
       const cantidad = parseInt(body.cantidad, 10);
       const talla = (body.talla || '').trim().toUpperCase();
@@ -183,19 +203,19 @@ export default async function handler(req, res) {
 
       return res.status(201).json({
         success: true,
-        message: '¡Pedido guardado con éxito!',
+        message: 'Pedido guardado con éxito.',
         order: nuevoPedido,
         provider: result.provider,
       });
     }
 
-    // DELETE: Eliminar un pedido (Protegido por PIN)
+    // DELETE: Eliminar un pedido (Protegido para dueños)
     if (req.method === 'DELETE') {
-      const { valido } = verificarPinAdmin(req);
-      if (!valido) {
+      const { esValido } = verificarCredenciales(req);
+      if (!esValido) {
         return res.status(401).json({
           success: false,
-          error: 'PIN de acceso no válido o no proporcionado.',
+          error: 'Credenciales de acceso no válidas.',
         });
       }
 
@@ -210,7 +230,7 @@ export default async function handler(req, res) {
       const deleted = await deleteOrder(id);
       return res.status(200).json({
         success: true,
-        message: `Pedido ${id} procesado para eliminación.`,
+        message: `Pedido ${id} eliminado correctamente.`,
         deleted,
       });
     }
