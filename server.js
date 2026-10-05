@@ -67,7 +67,14 @@ const server = http.createServer(async (req, res) => {
     }
 
     // Static file serving
-    let filePath = path.join(__dirname, pathname === '/' ? 'index.html' : pathname);
+    let filePath;
+    if (pathname === '/admin' || pathname === '/admin/') {
+      filePath = path.join(__dirname, 'admin.html');
+    } else if (pathname === '/' || pathname === '') {
+      filePath = path.join(__dirname, 'index.html');
+    } else {
+      filePath = path.join(__dirname, pathname);
+    }
 
     // If file doesn't exist, try index.html
     if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {

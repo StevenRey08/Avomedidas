@@ -29,8 +29,22 @@ function setCors(res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST,DELETE');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, x-admin-pin, authorization'
   );
+}
+
+function verificarPinAdmin(req) {
+  const pinConfigurado = process.env.ADMIN_PIN || process.env.ADMIN_PASSWORD || '1234';
+  const pinRecibido =
+    req.headers['x-admin-pin'] ||
+    req.query?.pin ||
+    req.body?.pin ||
+    (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
+
+  return {
+    valido: String(pinRecibido) === String(pinConfigurado),
+    pinConfigurado,
+  };
 }
 
 export default async function handler(req, res) {
@@ -41,8 +55,17 @@ export default async function handler(req, res) {
   }
 
   try {
-    // GET: Obtener todos los pedidos o uno por ID
+    // GET: Obtener pedidos (Protegido por PIN para privacidad de los clientes)
     if (req.method === 'GET') {
+      const { valido } = verificarPinAdmin(req);
+
+      if (!valido) {
+        return res.status(401).json({
+          success: false,
+          error: 'PIN de acceso no válido o no proporcionado.',
+        });
+      }
+
       const { id } = req.query || {};
 
       if (id) {
@@ -67,7 +90,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // POST: Crear y guardar un nuevo pedido
+    // POST: Crear y guardar un nuevo pedido (Público para los clientes)
     if (req.method === 'POST') {
       let body = req.body;
       if (typeof body === 'string') {
@@ -85,6 +108,15 @@ export default async function handler(req, res) {
         return res.status(400).json({
           success: false,
           error: 'No se recibieron datos en la petición.',
+        });
+      }
+
+      // Si es una petición de verificación de PIN desde el panel admin
+      if (body.action === 'verify_pin') {
+        const { valido } = verificarPinAdmin(req);
+        return res.status(200).json({
+          success: valido,
+          message: valido ? 'PIN correcto' : 'PIN incorrecto',
         });
       }
 
@@ -157,8 +189,16 @@ export default async function handler(req, res) {
       });
     }
 
-    // DELETE: Eliminar un pedido
+    // DELETE: Eliminar un pedido (Protegido por PIN)
     if (req.method === 'DELETE') {
+      const { valido } = verificarPinAdmin(req);
+      if (!valido) {
+        return res.status(401).json({
+          success: false,
+          error: 'PIN de acceso no válido o no proporcionado.',
+        });
+      }
+
       const id = req.query?.id || req.body?.id;
       if (!id) {
         return res.status(400).json({

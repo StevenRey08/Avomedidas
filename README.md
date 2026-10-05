@@ -1,128 +1,79 @@
-# Avocat · Tallas y Medidas 🧵🥑
+# Avocat · Sistema de Medidas y Confección 🧵🥑
 
-Aplicación web para captura, sugerencia inteligente de tallas y almacenamiento de medidas corporales para pedidos de confección, respaldada por **Funciones Serverless de Vercel** e integración con **Redis (Upstash / Vercel KV)**.
-
----
-
-## 🌟 Características Principales
-
-1. **Diseño Fiel a la Marca Avocat**:
-   - Encabezado con cinta métrica decorativa milimetrada.
-   - Silueta corporal femenina interactiva en SVG con resaltado dinámico de zonas de medición (hombros, pecho, cintura, cadera, largo de manga).
-   - Tipografía moderna con Google Fonts (*Bricolage Grotesque* y *Figtree*).
-   - Paleta de color corporativa verde oliva/aguacate, neutros suaves y acentos verdes.
-
-2. **Cálculo Inteligente de Talla Sugerida**:
-   - Analiza en tiempo real los contornos de pecho y cadera para sugerir la talla óptima (`XS`, `S`, `M`, `L`, `XL`, `XXL`).
-
-3. **Backend Serverless en Vercel (`/api/pedidos`)**:
-   - `POST /api/pedidos`: Valida campos, calcula la talla recomendada en el servidor, genera un ID único y persiste el pedido en Redis.
-   - `GET /api/pedidos`: Lista todos los pedidos almacenados (ordenados del más reciente al más antiguo).
-   - `GET /api/pedidos?id=...`: Consulta un pedido específico.
-   - `DELETE /api/pedidos?id=...`: Elimina un pedido de Redis.
-   - `GET /api/health`: Monitorea el estado y proveedor de la conexión de Redis.
-
-4. **Integración con Redis**:
-   - Compatible nativamente con **Vercel KV** y **Upstash Redis** mediante `@upstash/redis` (REST HTTP ideal para entornos Serverless sin límites de sockets).
-   - Compatible también con **Redis tradicional (TCP/TLS)** mediante `ioredis` (`REDIS_URL`).
-   - Modo de respaldo local (*in-memory fallback*) para desarrollo y pruebas rápidas sin configuración previa.
-
-5. **Generación de Fichas PDF (jsPDF)**:
-   - Ficha de confección individual con medidas, notas del cliente y logotipo de Avocat.
-   - Descarga consolidada de todos los pedidos con tabla resumen general y fichas individuales.
-
-6. **Panel de Gestión de Pedidos**:
-   - Pestaña para administradores/taller para revisar los pedidos recibidos en Redis, buscar por nombre o talla, descargar PDFs o eliminar pedidos procesados.
+Solución web completa con arquitectura desacoplada para confección a medida:
+1. **Página Pública para Clientas (`/`)**: Formulario interactivo para toma de medidas y sugerencia de tallas con silueta visual.
+2. **Portal Privado para Propietarios / Taller (`/admin`)**: Panel protegido por PIN para consultar pedidos guardados en Redis, descargar **Informes de Confección en PDF** y exportar a Excel.
+3. **Backend Serverless en Vercel (`/api/pedidos`)**: Conexión con **Redis (Upstash / Vercel KV)**.
 
 ---
 
-## 📂 Estructura del Proyecto
+## 🌟 Estructura del Sistema
+
+### 1. Web de las Clientas (`/` o `index.html`)
+- **Pública y compartible**: Enlace directo para enviar a clientas por WhatsApp, Instagram o enlace bio.
+- **Silueta interactiva SVG**: Ilumina zonas corporales (*pecho, cintura, cadera, hombros, manga*).
+- **Calculador automático de talla**: Analiza pecho y cadera en tiempo real y sugiere la talla (`XS` a `XXL`).
+- **Confirmación instantánea**: Muestra el ID de pedido y permite descargar su ficha individual en PDF.
+- **Sin acceso a datos de otras clientas**: No expone listas ni registros de otros clientes.
+
+### 2. Portal Privado del Taller (`/admin` o `admin.html`)
+- **Protegido por PIN**: Requiere ingresar el código de seguridad (PIN predeterminado: `1234`, configurable con la variable `ADMIN_PIN`).
+- **Métricas de producción**: Total de pedidos recibidos, total de prendas a confeccionar y estado de Redis.
+- **Buscador y filtros**: Filtra por nombre de clienta, código de pedido, notas o talla.
+- **📄 Informes en Formato PDF**:
+  - **Informe Individual de Confección**: Ficha técnica de patronaje con checklist de corte, hilvanado y entrega para el taller.
+  - **Informe Maestro de Taller (PDF consolidado)**: Tabla resumen de todos los pedidos + fichas técnicas individuales listas para imprimir.
+- **📊 Exportación a Excel (CSV)**: Descarga directa en formato compatible con Excel (UTF-8 con BOM).
+- **Gestión**: Opción para eliminar o archivar pedidos completados de Redis.
+
+---
+
+## 📂 Archivos del Proyecto
 
 ```text
 Avomedidas-1/
 ├── api/
-│   ├── _redis.js        # Adaptador unificado para Redis (Upstash, ioredis, memoria)
-│   ├── pedidos.js       # Función Serverless Vercel (CRUD de pedidos)
-│   └── health.js        # Endpoint de salud y diagnóstico de Redis
+│   ├── _redis.js        # Adaptador unificado para Redis (Upstash REST, ioredis, memoria)
+│   ├── pedidos.js       # Función Serverless Vercel (CRUD protegido con PIN para lectura/borrado)
+│   └── health.js        # Diagnóstico de conexión Redis
 ├── css/
-│   └── styles.css       # Estilos visuales de Avocat y cinta métrica
+│   ├── styles.css       # Estilos del formulario público de clientas
+│   └── admin.css        # Estilos del portal privado del taller
 ├── js/
-│   └── app.js           # Lógica frontend, silueta interactiva, API y jsPDF
-├── index.html           # Página web principal
-├── server.js            # Servidor local Node.js para pruebas directas
-├── vercel.json          # Configuración de despliegue y CORS en Vercel
+│   ├── app.js           # Lógica del formulario público y silueta interactiva
+│   └── admin.js         # Lógica del panel privado, PIN, generación de informes PDF y CSV
+├── index.html           # Página web pública de clientas (Formulario)
+├── admin.html           # Portal privado de taller (Informes y Pedidos)
+├── server.js            # Servidor local Node.js
+├── vercel.json          # Enrutamiento (/admin -> admin.html) y CORS
 ├── package.json         # Dependencias (@upstash/redis, ioredis)
-├── .env.example         # Plantilla de variables de entorno para Redis
-└── .gitignore
+└── .env.example         # Variables de entorno
 ```
 
 ---
 
-## 🚀 Puesta en Marcha Local
+## 🚀 Pruebas en Local
 
-### 1. Instalar dependencias
-```bash
-npm install
-```
+El servidor local ya se encuentra activo en tu máquina:
 
-### 2. Iniciar servidor local
-Puedes probarlo inmediatamente sin necesidad de instalar o configurar Redis localmente:
-```bash
-npm start
-```
-Abre en tu navegador: **[http://localhost:3000](http://localhost:3000)**
+- **Formulario de Clientas**: [http://localhost:3000](http://localhost:3000)
+- **Portal Privado de Taller**: [http://localhost:3000/admin](http://localhost:3000/admin) *(PIN por defecto: `1234`)*
+- **Endpoint API**: [http://localhost:3000/api/pedidos](http://localhost:3000/api/pedidos)
 
 ---
 
-## ☁️ Conexión con Redis
+## ☁️ Despliegue en Vercel
 
-Para que los datos persistan de forma permanente en la nube:
-
-### Opción A: Vercel KV / Upstash (Recomendado)
-1. Entra a tu proyecto en el panel de **[Vercel](https://vercel.com/)**.
-2. Ve a la pestaña **Storage** y crea o vincula una base de datos **KV** o **Upstash Redis**.
-3. Vercel inyectará automáticamente las variables:
-   - `KV_REST_API_URL`
-   - `KV_REST_API_TOKEN`
-
-### Opción B: Redis URL
-Configura la variable `REDIS_URL`:
-```env
-REDIS_URL=rediss://default:tu_password@tu-host.upstash.io:6379
-```
-
----
-
-## 🚢 Despliegue con Vercel CLI
-
-Ya tienes instalado el cliente de Vercel. Para desplegar tu proyecto:
-
-```bash
-# 1. Iniciar sesión en Vercel
-vercel login
-
-# 2. Desplegar una vista previa
-vercel
-
-# 3. Desplegar a producción
+```powershell
+# 1. Desplegar en Vercel
 vercel --prod
 ```
 
----
-
-## 🐙 Despliegue continuo con GitHub CLI (`gh`)
-
-Para subir el código a tu repositorio de GitHub:
-
-```bash
-# 1. Añadir cambios y hacer commit
-git add .
-git commit -m "feat: implementar sitio Avocat con función serverless Vercel y Redis"
-
-# 2. Iniciar sesión en GitHub (si aún no lo has hecho)
-gh auth login
-
-# 3. Enviar a tu rama principal
-git push -u origin main
-```
-Una vez vinculado el repositorio en Vercel, cada `git push` desplegará automáticamente la aplicación.
+### Variables de Entorno en Vercel:
+1. **Base de Datos Redis (Upstash / Vercel KV)**:
+   - Ve a la pestaña **Storage** en tu proyecto de Vercel y añade **KV (Upstash)**.
+   - Vercel inyectará automáticamente `KV_REST_API_URL` y `KV_REST_API_TOKEN`.
+2. **PIN de Acceso al Taller**:
+   - En **Settings -> Environment Variables**:
+     - Variable: `ADMIN_PIN`
+     - Valor: Tu PIN secreto (ejemplo: `9876`).
