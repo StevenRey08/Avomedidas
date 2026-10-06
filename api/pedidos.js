@@ -217,6 +217,8 @@ export default async function handler(req, res) {
         hombro_cuello,
         torso,
         notas: (body.notas || '').trim(),
+        foto_cliente: body.foto_cliente || null,
+        foto_tela: body.foto_tela || null,
       };
 
       const result = await saveOrder(nuevoPedido);

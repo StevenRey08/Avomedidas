@@ -442,6 +442,33 @@
     doc.setFontSize(8.5);
     doc.setTextColor(130, 150, 130);
     doc.text('Avocat Confecciones · Ficha Técnica Oficial', 105, 290, { align: 'center' });
+
+    // --- SECCIÓN ANEXOS FOTOGRÁFICOS ---
+    if (o.foto_cliente || o.foto_tela) {
+      doc.addPage();
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor.apply(doc, COLOR_GREEN);
+      doc.text('Anexos Fotográficos', 15, 20);
+      
+      let yAnexo = 30;
+      if (o.foto_cliente) {
+        doc.setFontSize(11);
+        doc.text('Foto del Cliente', 15, yAnexo);
+        doc.addImage(o.foto_cliente, 'JPEG', 15, yAnexo + 5, 80, 80, undefined, 'FAST');
+        yAnexo += 95;
+      }
+      
+      if (o.foto_tela) {
+        if (yAnexo > 200) {
+           doc.addPage();
+           yAnexo = 20;
+        }
+        doc.setFontSize(11);
+        doc.text('Foto de la Tela', 15, yAnexo);
+        doc.addImage(o.foto_tela, 'JPEG', 15, yAnexo + 5, 80, 80, undefined, 'FAST');
+      }
+    }
   }
 
   async function descargarPDF(order, nombreArchivo) {
@@ -589,6 +616,32 @@
     };
   }
 
+  function resizeImage(file, maxDist) {
+    return new Promise((resolve) => {
+      if (!file) return resolve(null);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let w = img.width, h = img.height;
+          if (w > maxDist || h > maxDist) {
+            if (w > h) { h = Math.round((h * maxDist) / w); w = maxDist; }
+            else { w = Math.round((w * maxDist) / h); h = maxDist; }
+          }
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.6));
+        };
+        img.onerror = () => resolve(null);
+        img.src = e.target.result;
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+  }
+
   $('guardar').addEventListener('click', async function () {
     const campos = ['nombre', 'cantidad', 'tipo_prenda', 'talla', 'talla_pantalon', 'pecho', 'cintura', 'hombros', 'manga', 'cintura_pantalon', 'largo_pantalon', 'hombro_cuello', 'torso', 'notas'];
     const v = {};
@@ -643,6 +696,28 @@
       return;
     }
 
+    const btn = $('guardar');
+    const btnText = btn.querySelector('.btn-text');
+    const btnSpinner = $('btnSpinner') || btn.querySelector('.btn-spinner');
+
+    btn.disabled = true;
+    btnText.textContent = 'Procesando imágenes...';
+    if (btnSpinner) {
+      btnSpinner.classList.add('is-loading');
+      btnSpinner.style.display = 'inline-block';
+    }
+
+    let foto_cliente = null;
+    let foto_tela = null;
+    try {
+      const fileCliente = $('foto_cliente') ? $('foto_cliente').files[0] : null;
+      const fileTela = $('foto_tela') ? $('foto_tela').files[0] : null;
+      foto_cliente = await resizeImage(fileCliente, 600);
+      foto_tela = await resizeImage(fileTela, 600);
+    } catch (e) {
+      console.warn('Error al procesar imágenes', e);
+    }
+
     const pedidoPayload = {
       nombre: v.nombre,
       cantidad: +v.cantidad,
@@ -658,18 +733,11 @@
       hombro_cuello: v.hombro_cuello ? +v.hombro_cuello : null,
       torso: v.torso ? +v.torso : null,
       notas: v.notas,
+      foto_cliente,
+      foto_tela
     };
 
-    const btn = $('guardar');
-    const btnText = btn.querySelector('.btn-text');
-    const btnSpinner = $('btnSpinner') || btn.querySelector('.btn-spinner');
-
-    btn.disabled = true;
     btnText.textContent = 'Guardando pedido...';
-    if (btnSpinner) {
-      btnSpinner.classList.add('is-loading');
-      btnSpinner.style.display = 'inline-block';
-    }
 
     try {
       const respuesta = await enviarPedidoAPI(pedidoPayload);
@@ -680,8 +748,11 @@
       ok.hidden = false;
 
       // Limpiar formulario excepto cantidad por defecto
-      ['nombre', 'talla', 'talla_pantalon', 'pecho', 'cintura', 'hombros', 'manga', 'cintura_pantalon', 'largo_pantalon', 'hombro_cuello', 'torso', 'notas'].forEach((k) => {
-        if ($(k)) $(k).value = '';
+      ['nombre', 'talla', 'talla_pantalon', 'pecho', 'cintura', 'hombros', 'manga', 'cintura_pantalon', 'largo_pantalon', 'hombro_cuello', 'torso', 'notas', 'foto_cliente', 'foto_tela'].forEach((k) => {
+        if ($(k)) {
+          if ($(k).type === 'file') $(k).value = '';
+          else $(k).value = '';
+        }
       });
       $('cantidad').value = 1;
       actualizarSugerencia();

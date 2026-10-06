@@ -295,6 +295,19 @@
             <input type="text" id="editNotas" placeholder="Especificaciones adicionales...">
           </div>
 
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>Foto del Cliente</label>
+              <div id="previewFotoCliente" style="margin-bottom:8px; max-width: 120px; max-height: 120px; overflow: hidden; border-radius: 6px;"></div>
+              <input type="file" id="editFotoCliente" accept="image/*">
+            </div>
+            <div class="form-group">
+              <label>Foto de la Tela</label>
+              <div id="previewFotoTela" style="margin-bottom:8px; max-width: 120px; max-height: 120px; overflow: hidden; border-radius: 6px;"></div>
+              <input type="file" id="editFotoTela" accept="image/*">
+            </div>
+          </div>
+
           <div class="modal-actions">
             <button type="button" id="btnCancelEdit2" class="btn-secondary">Cancelar</button>
             <button type="submit" id="btnSaveEdit" class="btn-primary">Guardar Cambios</button>

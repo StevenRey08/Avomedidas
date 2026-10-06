@@ -533,6 +533,7 @@
         </td>
         <td class="notes-text" title="${escapeHTML(o.notas || 'Sin notas especiales')}">
           ${escapeHTML(o.notas || '—')}
+          ${o.foto_cliente || o.foto_tela ? '<br><small>📸 Fotos adjuntas</small>' : ''}
         </td>
         <td class="actions-group">
           <button type="button" class="btn-action btn-edit" data-action="edit" data-id="${escapeHTML(o.id)}" title="Editar medidas o datos del pedido">
@@ -659,6 +660,21 @@
     $('editHombroCuello').value = order.hombro_cuello || '';
     $('editTorso').value = order.torso || '';
     $('editNotas').value = order.notas || '';
+
+    $('editFotoCliente').value = '';
+    $('editFotoTela').value = '';
+    if (order.foto_cliente) {
+      $('previewFotoCliente').innerHTML = `<img src="${order.foto_cliente}" style="width:100%; height:auto;" alt="Foto Cliente">`;
+    } else {
+      $('previewFotoCliente').innerHTML = '';
+    }
+    
+    if (order.foto_tela) {
+      $('previewFotoTela').innerHTML = `<img src="${order.foto_tela}" style="width:100%; height:auto;" alt="Foto Tela">`;
+    } else {
+      $('previewFotoTela').innerHTML = '';
+    }
+
     $('editModal').style.display = 'flex';
     $('editNombre').focus();
   }
@@ -673,10 +689,47 @@
     if (e.target === $('editModal')) cerrarModalEdicion();
   });
 
+  function resizeImage(file, maxDist) {
+    return new Promise((resolve) => {
+      if (!file) return resolve(null);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let w = img.width, h = img.height;
+          if (w > maxDist || h > maxDist) {
+            if (w > h) { h = Math.round((h * maxDist) / w); w = maxDist; }
+            else { w = Math.round((w * maxDist) / h); h = maxDist; }
+          }
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.6));
+        };
+        img.onerror = () => resolve(null);
+        img.src = e.target.result;
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+  }
+
   $('editOrderForm').addEventListener('submit', async function (e) {
     e.preventDefault();
     const id = $('editOrderId').value;
     const fecha = $('editOrderFecha').value || new Date().toISOString();
+
+    let foto_cliente = orders.find((x) => x.id === id)?.foto_cliente || null;
+    let foto_tela = orders.find((x) => x.id === id)?.foto_tela || null;
+    
+    try {
+      const fileCliente = $('editFotoCliente').files[0];
+      const fileTela = $('editFotoTela').files[0];
+      if (fileCliente) foto_cliente = await resizeImage(fileCliente, 600);
+      if (fileTela) foto_tela = await resizeImage(fileTela, 600);
+    } catch(err) {}
+
     const payload = {
       id,
       fecha,
@@ -694,6 +747,8 @@
       hombro_cuello: $('editHombroCuello').value ? parseFloat($('editHombroCuello').value) : null,
       torso: $('editTorso').value ? parseFloat($('editTorso').value) : null,
       notas: $('editNotas').value.trim(),
+      foto_cliente,
+      foto_tela
     };
 
     const btn = $('btnSaveEdit');
@@ -1076,6 +1131,33 @@
     doc.setFontSize(8);
     doc.setTextColor(130, 150, 130);
     doc.text('Avocat Confecciones · Ficha Tecnica Oficial de Taller', 105, 290, { align: 'center' });
+
+    // --- SECCIÓN ANEXOS FOTOGRÁFICOS ---
+    if (o.foto_cliente || o.foto_tela) {
+      doc.addPage();
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor.apply(doc, COLOR_GREEN);
+      doc.text('Anexos Fotográficos', 15, 20);
+      
+      let yAnexo = 30;
+      if (o.foto_cliente) {
+        doc.setFontSize(11);
+        doc.text('Foto del Cliente', 15, yAnexo);
+        doc.addImage(o.foto_cliente, 'JPEG', 15, yAnexo + 5, 80, 80, undefined, 'FAST');
+        yAnexo += 95;
+      }
+      
+      if (o.foto_tela) {
+        if (yAnexo > 200) {
+           doc.addPage();
+           yAnexo = 20;
+        }
+        doc.setFontSize(11);
+        doc.text('Foto de la Tela', 15, yAnexo);
+        doc.addImage(o.foto_tela, 'JPEG', 15, yAnexo + 5, 80, 80, undefined, 'FAST');
+      }
+    }
   }
 
   async function descargarInformeIndividual(order) {
