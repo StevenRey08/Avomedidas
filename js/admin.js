@@ -1169,7 +1169,7 @@
     try {
       const d = new Date(isoStr);
       if (isNaN(d.getTime())) return isoStr;
-      const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+      const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
       const dia = d.getDate();
       const mes = meses[d.getMonth()];
       const anio = d.getFullYear();
@@ -1177,7 +1177,7 @@
       const m = String(d.getMinutes()).padStart(2, '0');
       const ampm = h >= 12 ? 'p. m.' : 'a. m.';
       h = h % 12 || 12;
-      return `${dia} de ${mes} de ${anio} · ${h}:${m} ${ampm}`;
+      return `${dia} ${mes} ${anio} · ${h}:${m} ${ampm}`;
     } catch {
       return isoStr;
     }
@@ -1213,72 +1213,77 @@
     doc.setFillColor(31, 74, 34);
     doc.rect(14, 29.5, 182, 1, 'F');
 
-    // 2. RESUMEN DEL CLIENTE (y = 33 a 53)
+    // 2. RESUMEN DEL CLIENTE (y = 32 a 57, h = 25mm con espaciado amplio y división)
     const sugerida = o.tallaSugerida || '-';
     const tipoPrendaTexto = (o.tipo_prenda === 'camisa') ? 'Solo Camisa' : (o.tipo_prenda === 'pantalon' ? 'Solo Pantalon' : 'Camisa y Pantalon');
     const tallaCliente = [o.talla ? `Camisa: ${o.talla}` : '', o.talla_pantalon ? `Pant: ${o.talla_pantalon}` : ''].filter(Boolean).join(' · ') || (o.talla || 'N/A');
 
     doc.setFillColor(248, 251, 246);
-    doc.roundedRect(14, 33, 182, 20, 2, 2, 'F');
+    doc.roundedRect(14, 32, 182, 25, 2.5, 2.5, 'F');
     doc.setDrawColor(207, 224, 203);
     doc.setLineWidth(0.35);
-    doc.roundedRect(14, 33, 182, 20, 2, 2, 'D');
+    doc.roundedRect(14, 32, 182, 25, 2.5, 2.5, 'D');
 
-    // Fila 1 de datos
+    // Línea sutil de división entre Fila 1 y Fila 2 para que nunca se vea amontonado
+    doc.setDrawColor(225, 238, 222);
+    doc.setLineWidth(0.2);
+    doc.line(17, 44.5, 193, 44.5);
+
+    // --- Fila 1 de datos ---
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.8);
     doc.setTextColor(79, 115, 81);
-    doc.text('CLIENTE / DESTINATARIA:', 18, 38.5);
-    doc.text('TALLA SOLICITADA:', 82, 38.5);
-    doc.text('FECHA DE REGISTRO:', 140, 38.5);
+    doc.text('CLIENTE / DESTINATARIA:', 18, 36.8);
+    doc.text('TALLA SOLICITADA:', 76, 36.8);
+    doc.text('FECHA DE REGISTRO:', 136, 36.8);
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9.5);
     doc.setTextColor(31, 74, 34);
-    doc.text(String(o.nombre || 'Cliente').substring(0, 35), 18, 43);
+    doc.text(String(o.nombre || 'Cliente').substring(0, 32), 18, 41.8);
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
     doc.setTextColor(31, 74, 34);
-    doc.text(tallaCliente, 82, 43);
+    doc.text(tallaCliente, 76, 41.8);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.8);
-    doc.setTextColor(50, 70, 50);
-    doc.text(formatearFechaPDF(o.fecha), 140, 43);
+    doc.setTextColor(60, 80, 60);
+    doc.text(formatearFechaPDF(o.fecha), 136, 41.8);
 
-    // Fila 2 de datos
+    // --- Fila 2 de datos ---
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.8);
     doc.setTextColor(79, 115, 81);
-    doc.text('PRENDAS A ELABORAR:', 18, 47.5);
-    doc.text('TALLA SUGERIDA (MEDIDAS):', 82, 47.5);
-    doc.text('CODIGO UNICO DE PEDIDO:', 140, 47.5);
+    doc.text('PRENDAS A ELABORAR:', 18, 49);
+    doc.text('TALLA SUGERIDA:', 76, 49);
+    doc.text('CODIGO UNICO DE PEDIDO:', 136, 49);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(40, 50, 40);
-    doc.text(`${o.cantidad || 1} pieza(s) (${tipoPrendaTexto})`, 18, 51.5);
+    doc.setFontSize(8.2);
+    doc.setTextColor(40, 55, 40);
+    doc.text(`${o.cantidad || 1} unid. (${tipoPrendaTexto})`, 18, 54);
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
     doc.setTextColor(31, 74, 34);
-    doc.text(String(sugerida), 82, 51.5);
+    doc.text(String(sugerida), 76, 54);
 
     doc.setFont('courier', 'bold');
-    doc.setFontSize(8);
+    doc.setFontSize(7.8);
     doc.setTextColor(79, 115, 81);
-    doc.text(String(o.id || 'N/A'), 140, 51.5);
+    doc.text(String(o.id || 'N/A'), 136, 54);
 
-    // 3. SECCIÓN MEDIA: SILUETA (Izquierda) + TABLA Y NOTAS (Derecha) (y = 56 a 150)
+    // 3. SECCIÓN MEDIA: SILUETA (Izquierda) + TABLA Y NOTAS (Derecha) (y = 61 a 153)
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
     doc.setTextColor(31, 74, 34);
-    doc.text('SILUETA CON PUNTOS DE MEDIDA', 14, 58.5);
-    doc.text('TABLA DE MEDIDAS CORPORALES (PULGADAS)', 98, 58.5);
+    doc.text('SILUETA CON PUNTOS DE MEDIDA', 14, 61.2);
+    doc.text('TABLA DE MEDIDAS CORPORALES (PULGADAS)', 98, 61.2);
 
     // Silueta a la izquierda
-    const siluetaY = 61;
+    const siluetaY = 64;
     const siluetaW = 80;
     const siluetaH = 89;
     doc.setFillColor(255, 255, 255);
@@ -1292,7 +1297,7 @@
       doc.addImage(siluetaDataUrl, 'PNG', 15, siluetaY + 1, siluetaW - 2, siluetaH - 2);
     }
 
-    // Tabla de medidas a la derecha (y = 61 a 102.6)
+    // Tabla de medidas a la derecha (y = 64 a 108)
     let yTable = siluetaY;
     const tableW = 98;
     const medidas = [];
@@ -1305,7 +1310,7 @@
     if (o.hombro_cuello) medidas.push(['Hombro Cuello', `${o.hombro_cuello} in`]);
     if (o.torso) medidas.push(['Torso (Cuello a Cint.)', `${o.torso} in`]);
 
-    const rowH = 5.2;
+    const rowH = 5.5;
     medidas.forEach((r, i) => {
       if (i % 2 === 0) {
         doc.setFillColor(243, 247, 239);
@@ -1314,41 +1319,41 @@
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8.2);
       doc.setTextColor(60, 85, 60);
-      doc.text(r[0], 101, yTable + 3.8);
+      doc.text(r[0], 101, yTable + 4);
 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8.8);
       doc.setTextColor(31, 74, 34);
-      doc.text(r[1], 193, yTable + 3.8, { align: 'right' });
+      doc.text(r[1], 193, yTable + 4, { align: 'right' });
       yTable += rowH;
     });
 
-    // Observaciones para confección (y = 105 a 129)
-    const yObs = 105;
+    // Observaciones para confección (y = 111 a 134)
+    const yObs = 111;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.5);
     doc.setTextColor(79, 115, 81);
     doc.text('OBSERVACIONES PARA CONFECCION', 98, yObs);
 
     doc.setFillColor(252, 254, 250);
-    doc.roundedRect(98, yObs + 2, tableW, 23, 1.5, 1.5, 'F');
+    doc.roundedRect(98, yObs + 2.5, tableW, 21, 1.5, 1.5, 'F');
     doc.setDrawColor(207, 224, 203);
     doc.setLineWidth(0.3);
-    doc.roundedRect(98, yObs + 2, tableW, 23, 1.5, 1.5, 'D');
+    doc.roundedRect(98, yObs + 2.5, tableW, 21, 1.5, 1.5, 'D');
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
     doc.setTextColor(50, 70, 50);
     const notasTexto = o.notas ? String(o.notas) : 'Sin especificaciones adicionales indicadas por el cliente.';
-    doc.text(doc.splitTextToSize(notasTexto, 92), 101, yObs + 6.5);
+    doc.text(doc.splitTextToSize(notasTexto, 92), 101, yObs + 7);
 
-    // Caja para Tipo de Tela (y = 133 a 150)
-    const yTela = 133;
+    // Caja para Tipo de Tela (y = 137.5 a 153)
+    const yTela = 137.5;
     doc.setFillColor(255, 255, 255);
-    doc.roundedRect(98, yTela, tableW, 17, 1.5, 1.5, 'F');
+    doc.roundedRect(98, yTela, tableW, 15.5, 1.5, 1.5, 'F');
     doc.setDrawColor(31, 74, 34);
     doc.setLineWidth(0.3);
-    doc.roundedRect(98, yTela, tableW, 17, 1.5, 1.5, 'D');
+    doc.roundedRect(98, yTela, tableW, 15.5, 1.5, 1.5, 'D');
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.2);
@@ -1358,24 +1363,24 @@
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.2);
     doc.setTextColor(110, 135, 110);
-    doc.text('Tejido seleccionado: _____________________________________________', 101, yTela + 11.5);
+    doc.text('Tejido seleccionado: _____________________________________________', 101, yTela + 11);
 
-    // 4. SECCIÓN DE FOTOGRAFÍAS (y = 153 a 226)
-    const yFotos = 153;
+    // 4. SECCIÓN DE FOTOGRAFÍAS (y = 157 a 226)
+    const yFotos = 157;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
     doc.setTextColor(31, 74, 34);
-    doc.text('FOTOGRAFIAS DE REFERENCIA', 14, yFotos + 2.5);
+    doc.text('FOTOGRAFIAS DE REFERENCIA', 14, yFotos + 1.5);
 
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(7.2);
     doc.setTextColor(100, 125, 100);
-    doc.text('(Cliente y Muestra de Tejido)', 196, yFotos + 2.5, { align: 'right' });
+    doc.text('(Cliente y Muestra de Tejido)', 196, yFotos + 1.5, { align: 'right' });
 
     const fotoClienteObj = await prepararCanvasImagen(o.foto_cliente);
     const fotoTelaObj = await prepararCanvasImagen(o.foto_tela);
-    const cardY = yFotos + 4.5;
-    const cardH = 67;
+    const cardY = yFotos + 4;
+    const cardH = 65;
 
     if (fotoClienteObj && fotoTelaObj) {
       const cardW = 88;
@@ -1401,18 +1406,18 @@
       doc.text('Sin fotografias adjuntas para este pedido · Registro tecnico estandar de taller', 105, cardY + 10.5, { align: 'center' });
     }
 
-    // 5. CONTROL DE CALIDAD EN TALLER (y = 229 a 264)
-    const yControl = 229;
+    // 5. CONTROL DE CALIDAD EN TALLER (y = 230 a 264.5)
+    const yControl = 230;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
     doc.setTextColor(31, 74, 34);
-    doc.text('CONTROL DE CALIDAD EN TALLER', 14, yControl + 2.5);
+    doc.text('CONTROL DE CALIDAD EN TALLER', 14, yControl + 1.5);
 
     doc.setFillColor(252, 254, 250);
-    doc.roundedRect(14, yControl + 4.5, 182, 30, 2, 2, 'F');
+    doc.roundedRect(14, yControl + 4, 182, 30.5, 2, 2, 'F');
     doc.setDrawColor(31, 74, 34);
     doc.setLineWidth(0.35);
-    doc.roundedRect(14, yControl + 4.5, 182, 30, 2, 2, 'D');
+    doc.roundedRect(14, yControl + 4, 182, 30.5, 2, 2, 'D');
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.8);
@@ -1420,16 +1425,16 @@
     doc.text('[  ] 1. Patron y medidas verificadas', 20, yControl + 12);
     doc.text('[  ] 2. Corte de tela y entretelas', 110, yControl + 12);
 
-    doc.text('[  ] 3. Confeccion y prueba de calce', 20, yControl + 18.5);
-    doc.text('[  ] 4. Acabado, planchado y empaque', 110, yControl + 18.5);
+    doc.text('[  ] 3. Confeccion y prueba de calce', 20, yControl + 19);
+    doc.text('[  ] 4. Acabado, planchado y empaque', 110, yControl + 19);
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.5);
     doc.setTextColor(31, 74, 34);
-    doc.text('Firma de Confeccionista: _______________________________', 20, yControl + 28);
-    doc.text('Fecha de Entrega: _____ / _____ / 202___', 118, yControl + 28);
+    doc.text('Firma de Confeccionista: _______________________________', 20, yControl + 28.5);
+    doc.text('Fecha de Entrega: _____ / _____ / 202___', 118, yControl + 28.5);
 
-    // 6. PIE DE PÁGINA (y = 282 a 287)
+    // 6. PIE DE PÁGINA (y = 281.5 a 286)
     doc.setDrawColor(210, 226, 208);
     doc.setLineWidth(0.25);
     doc.line(14, 281.5, 196, 281.5);
