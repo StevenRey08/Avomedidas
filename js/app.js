@@ -30,8 +30,8 @@
       const val = e.target.value;
       const showCamisa = val === 'ambos' || val === 'camisa';
       const showPantalon = val === 'ambos' || val === 'pantalon';
-      document.querySelectorAll('.group-camisa').forEach(el => el.style.display = showCamisa ? 'flex' : 'none');
-      document.querySelectorAll('.group-pantalon').forEach(el => el.style.display = showPantalon ? 'flex' : 'none');
+      document.querySelectorAll('.group-camisa').forEach(el => el.style.display = showCamisa ? 'block' : 'none');
+      document.querySelectorAll('.group-pantalon').forEach(el => el.style.display = showPantalon ? 'block' : 'none');
     });
     setTimeout(() => $('tipo_prenda').dispatchEvent(new Event('change')), 100);
   }
