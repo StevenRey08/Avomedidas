@@ -16,15 +16,25 @@
     hombros: 'Hombros (de un hombro al otro, por la espalda)',
     pecho: 'Pecho (alrededor de la parte más ancha)',
     cintura: 'Cintura (alrededor de la parte más estrecha)',
-    cadera: 'Cadera (alrededor de la parte más ancha)',
     manga: 'Largo de manga (del hombro a la muñeca)',
-    cadera_pantalon: 'Cadera Pantalón (contorno de la cadera)',
+    cintura_pantalon: 'Cintura Pantalón (contorno para pantalón)',
     largo_pantalon: 'Largo Pantalón (de la cintura al tobillo)',
     hombro_cuello: 'Hombro Cuello (del cuello al hombro)',
     torso: 'Torso (del cuello a la cintura)',
   };
 
   let lastOrder = null;
+
+  if ($('tipo_prenda')) {
+    $('tipo_prenda').addEventListener('change', (e) => {
+      const val = e.target.value;
+      const showCamisa = val === 'ambos' || val === 'camisa';
+      const showPantalon = val === 'ambos' || val === 'pantalon';
+      document.querySelectorAll('.group-camisa').forEach(el => el.style.display = showCamisa ? 'flex' : 'none');
+      document.querySelectorAll('.group-pantalon').forEach(el => el.style.display = showPantalon ? 'flex' : 'none');
+    });
+    setTimeout(() => $('tipo_prenda').dispatchEvent(new Event('change')), 100);
+  }
 
   /* ------------------- CÁLCULO DE TALLA SUGERIDA ------------------- */
   function getIndex(val, arr) {
@@ -34,28 +44,35 @@
     return arr.length - 1;
   }
 
-  function calcularTallaSugerida(pecho, cadera) {
-    return SIZES[Math.max(getIndex(pecho, BUST), getIndex(cadera, HIP))];
+  function calcularTallaSugerida(pecho, cinturaPantalon) {
+    const pIdx = pecho ? getIndex(pecho, BUST) : 0;
+    const cIdx = cinturaPantalon ? getIndex(cinturaPantalon, HIP) : 0;
+    if (pecho && cinturaPantalon) return { camisa: SIZES[pIdx], pantalon: SIZES[cIdx] };
+    if (pecho) return { camisa: SIZES[pIdx] };
+    if (cinturaPantalon) return { pantalon: SIZES[cIdx] };
+    return {};
   }
 
   function actualizarSugerencia() {
     const p = parseFloat($('pecho').value);
-    const c = parseFloat($('cadera').value);
+    const c = parseFloat($('cintura_pantalon').value);
     const hint = $('hint');
 
-    if (!p || !c) {
-      hint.textContent = 'Ingresa pecho y cadera para ver la talla sugerida.';
+    const sug = calcularTallaSugerida(p, c);
+    if (!sug.camisa && !sug.pantalon) {
+      hint.textContent = 'Ingresa medidas (pecho o cintura pantalón) para ver talla sugerida.';
       hint.classList.remove('suggested');
       return;
     }
-
-    const sugerida = calcularTallaSugerida(p, c);
-    hint.innerHTML = `Según tus medidas corporales, tu talla sugerida es <b>${sugerida}</b>.`;
+    let txt = 'Talla sugerida: ';
+    if (sug.camisa) txt += `<b>Camisa ${sug.camisa}</b>. `;
+    if (sug.pantalon) txt += `<b>Pantalón ${sug.pantalon}</b>.`;
+    hint.innerHTML = txt;
     hint.classList.add('suggested');
   }
 
-  ['pecho', 'cadera'].forEach((id) => {
-    $(id).addEventListener('input', actualizarSugerencia);
+  ['pecho', 'cintura_pantalon'].forEach((id) => {
+    if ($(id)) $(id).addEventListener('input', actualizarSugerencia);
   });
 
   /* ------------------- INTERACTIVIDAD DE SILUETA SVG ------------------- */
@@ -209,12 +226,6 @@
           <circle class="m-dot" cx="76" cy="186" r="3.5"/>
           <circle class="m-dot" cx="124" cy="186" r="3.5"/>
 
-          <!-- Cadera -->
-          <line class="m-halo" x1="60" y1="240" x2="140" y2="240"/>
-          <line class="m-line" x1="60" y1="240" x2="140" y2="240"/>
-          <circle class="m-dot" cx="60" cy="240" r="3.5"/>
-          <circle class="m-dot" cx="140" cy="240" r="3.5"/>
-
           <!-- Manga -->
           <line class="m-halo" x1="52" y1="94" x2="41" y2="200"/>
           <line class="m-line" x1="52" y1="94" x2="41" y2="200"/>
@@ -222,7 +233,7 @@
           <circle class="m-dot" cx="41" cy="200" r="3.5"/>
 
           <!-- Medidas Nuevas -->
-          ${o.cadera_pantalon ? `
+          ${o.cintura_pantalon ? `
           <line class="m-halo" x1="63" y1="260" x2="137" y2="260"/>
           <line class="m-line" x1="63" y1="260" x2="137" y2="260"/>
           <circle class="m-dot" cx="63" cy="260" r="3.5"/>
@@ -260,22 +271,17 @@
         <text class="t-title" x="7" y="192">CINTURA</text>
         <text class="t-val" x="7" y="207">${o.cintura} in</text>
 
-        <line class="g-line" x1="200" y1="250" x2="245" y2="250"/>
-        <rect class="t-bg" x="245" y="233" width="72" height="34"/>
-        <text class="t-title" x="250" y="246">CADERA</text>
-        <text class="t-val" x="250" y="261">${o.cadera} in</text>
-
         <line class="g-line" x1="101" y1="160" x2="72" y2="260"/>
         <rect class="t-bg" x="2" y="243" width="70" height="34"/>
         <text class="t-title" x="7" y="256">L. MANGA</text>
         <text class="t-val" x="7" y="271">${o.manga} in</text>
 
         <!-- Etiquetas Nuevas -->
-        ${o.cadera_pantalon ? `
+        ${o.cintura_pantalon ? `
         <line class="g-line" x1="200" y1="270" x2="245" y2="270"/>
         <rect class="t-bg" x="245" y="253" width="72" height="34"/>
-        <text class="t-title" x="250" y="266">CAD. PANT</text>
-        <text class="t-val" x="250" y="281">${o.cadera_pantalon} in</text>` : ''}
+        <text class="t-title" x="250" y="266">CINT. PANT</text>
+        <text class="t-val" x="250" y="281">${o.cintura_pantalon} in</text>` : ''}
         
         ${o.largo_pantalon ? `
         <line class="g-line" x1="84" y1="280" x2="72" y2="300"/>
@@ -555,7 +561,13 @@
       ...datosPedido,
       id: uniqueId,
       fecha: new Date().toISOString(),
-      tallaSugerida: calcularTallaSugerida(datosPedido.pecho, datosPedido.cadera),
+      tallaSugerida: (() => {
+        const sug = calcularTallaSugerida(datosPedido.pecho, datosPedido.cintura_pantalon);
+        let s = [];
+        if (sug.camisa) s.push(`Camisa ${sug.camisa}`);
+        if (sug.pantalon) s.push(`Pantalón ${sug.pantalon}`);
+        return s.join(' / ');
+      })(),
       _sincronizado: false,
     };
 
@@ -570,7 +582,7 @@
   }
 
   $('guardar').addEventListener('click', async function () {
-    const campos = ['nombre', 'cantidad', 'talla', 'pecho', 'cintura', 'cadera', 'hombros', 'manga', 'cadera_pantalon', 'largo_pantalon', 'hombro_cuello', 'torso', 'notas'];
+    const campos = ['nombre', 'cantidad', 'tipo_prenda', 'talla', 'talla_pantalon', 'pecho', 'cintura', 'hombros', 'manga', 'cintura_pantalon', 'largo_pantalon', 'hombro_cuello', 'torso', 'notas'];
     const v = {};
     campos.forEach((k) => {
       const el = $(k);
@@ -596,30 +608,44 @@
       $('cantidad').focus();
       return;
     }
-    if (!v.talla) {
-      err.textContent = 'Por favor selecciona la talla que deseas pedir.';
-      $('talla').focus();
+    
+    const tp = v.tipo_prenda || 'ambos';
+    const isCamisa = tp === 'ambos' || tp === 'camisa';
+    const isPantalon = tp === 'ambos' || tp === 'pantalon';
+
+    if (isCamisa && !v.talla) {
+      err.textContent = 'Por favor selecciona la talla de camisa.';
+      if($('talla')) $('talla').focus();
+      return;
+    }
+    if (isPantalon && !v.talla_pantalon) {
+      err.textContent = 'Por favor selecciona la talla de pantalón.';
+      if($('talla_pantalon')) $('talla_pantalon').focus();
       return;
     }
 
-    const medidasClaves = ['pecho', 'cintura', 'cadera', 'hombros', 'manga'];
+    const medidasClaves = [];
+    if (isCamisa) medidasClaves.push('pecho', 'cintura', 'hombros', 'manga');
+    if (isPantalon) medidasClaves.push('cintura_pantalon', 'largo_pantalon');
+
     const faltantes = medidasClaves.filter((k) => !(+v[k] > 0));
     if (faltantes.length) {
       err.textContent = `Falta completar las siguientes medidas: ${faltantes.join(', ')}.`;
-      $(faltantes[0]).focus();
+      if($(faltantes[0])) $(faltantes[0]).focus();
       return;
     }
 
     const pedidoPayload = {
       nombre: v.nombre,
       cantidad: +v.cantidad,
-      talla: v.talla,
-      pecho: +v.pecho,
-      cintura: +v.cintura,
-      cadera: +v.cadera,
-      hombros: +v.hombros,
-      manga: +v.manga,
-      cadera_pantalon: v.cadera_pantalon ? +v.cadera_pantalon : null,
+      tipo_prenda: tp,
+      talla: v.talla || null,
+      talla_pantalon: v.talla_pantalon || null,
+      pecho: v.pecho ? +v.pecho : null,
+      cintura: v.cintura ? +v.cintura : null,
+      hombros: v.hombros ? +v.hombros : null,
+      manga: v.manga ? +v.manga : null,
+      cintura_pantalon: v.cintura_pantalon ? +v.cintura_pantalon : null,
       largo_pantalon: v.largo_pantalon ? +v.largo_pantalon : null,
       hombro_cuello: v.hombro_cuello ? +v.hombro_cuello : null,
       torso: v.torso ? +v.torso : null,
@@ -642,11 +668,11 @@
       lastOrder = respuesta.order;
 
       $('okt').textContent = 'Pedido recibido y guardado con éxito.';
-      $('okmeta').textContent = `Código: ${lastOrder.id} · Cliente: ${lastOrder.nombre} · Talla solicitada: ${lastOrder.talla} (Sugerida por medidas: ${lastOrder.tallaSugerida})`;
+      $('okmeta').textContent = `Código: ${lastOrder.id} · Cliente: ${lastOrder.nombre} · Tipo: ${lastOrder.tipo_prenda}`;
       ok.hidden = false;
 
       // Limpiar formulario excepto cantidad por defecto
-      ['nombre', 'talla', 'pecho', 'cintura', 'cadera', 'hombros', 'manga', 'cadera_pantalon', 'largo_pantalon', 'hombro_cuello', 'torso', 'notas'].forEach((k) => {
+      ['nombre', 'talla', 'talla_pantalon', 'pecho', 'cintura', 'hombros', 'manga', 'cintura_pantalon', 'largo_pantalon', 'hombro_cuello', 'torso', 'notas'].forEach((k) => {
         if ($(k)) $(k).value = '';
       });
       $('cantidad').value = 1;

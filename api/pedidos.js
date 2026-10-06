@@ -18,10 +18,17 @@ function getIndex(val, arr) {
   return arr.length - 1;
 }
 
-function calcularTallaSugerida(pecho, cadera) {
-  const pIdx = getIndex(pecho, BUST_THRESHOLDS);
-  const cIdx = getIndex(cadera, HIP_THRESHOLDS);
-  return SIZES[Math.max(pIdx, cIdx)] || 'M';
+function calcularTallaSugerida(pecho, cinturaPantalon) {
+  const pIdx = pecho ? getIndex(pecho, BUST_THRESHOLDS) : 0;
+  const cIdx = cinturaPantalon ? getIndex(cinturaPantalon, HIP_THRESHOLDS) : 0;
+  let sug = {};
+  if (pecho) sug.camisa = SIZES[pIdx];
+  if (cinturaPantalon) sug.pantalon = SIZES[cIdx];
+  
+  let s = [];
+  if (sug.camisa) s.push(`Camisa ${sug.camisa}`);
+  if (sug.pantalon) s.push(`Pantalón ${sug.pantalon}`);
+  return s.join(' / ');
 }
 
 function setCors(req, res) {
@@ -144,38 +151,40 @@ export default async function handler(req, res) {
       // Guardado de pedido del cliente
       const nombre = (body.nombre || '').trim();
       const cantidad = parseInt(body.cantidad, 10);
-      const talla = (body.talla || '').trim().toUpperCase();
-      const pecho = parseFloat(body.pecho);
-      const cintura = parseFloat(body.cintura);
-      const cadera = parseFloat(body.cadera);
-      const hombros = parseFloat(body.hombros);
-      const manga = parseFloat(body.manga);
-      const cadera_pantalon = body.cadera_pantalon ? parseFloat(body.cadera_pantalon) : null;
+      const tipo_prenda = (body.tipo_prenda || 'ambos').trim();
+      const talla = body.talla ? body.talla.trim().toUpperCase() : null;
+      const talla_pantalon = body.talla_pantalon ? body.talla_pantalon.trim().toUpperCase() : null;
+      const pecho = body.pecho ? parseFloat(body.pecho) : null;
+      const cintura = body.cintura ? parseFloat(body.cintura) : null;
+      const hombros = body.hombros ? parseFloat(body.hombros) : null;
+      const manga = body.manga ? parseFloat(body.manga) : null;
+      const cintura_pantalon = body.cintura_pantalon ? parseFloat(body.cintura_pantalon) : null;
       const largo_pantalon = body.largo_pantalon ? parseFloat(body.largo_pantalon) : null;
       const hombro_cuello = body.hombro_cuello ? parseFloat(body.hombro_cuello) : null;
       const torso = body.torso ? parseFloat(body.torso) : null;
 
       // Validaciones
       if (!nombre) {
-        return res.status(400).json({
-          success: false,
-          error: 'El nombre completo es obligatorio.',
-        });
+        return res.status(400).json({ success: false, error: 'El nombre completo es obligatorio.' });
       }
       if (!cantidad || cantidad < 1 || cantidad > 200) {
-        return res.status(400).json({
-          success: false,
-          error: 'La cantidad debe ser un número entero entre 1 y 200.',
-        });
-      }
-      if (!talla || !SIZES.includes(talla)) {
-        return res.status(400).json({
-          success: false,
-          error: `La talla debe ser una de las siguientes opciones: ${SIZES.join(', ')}.`,
-        });
+        return res.status(400).json({ success: false, error: 'La cantidad debe ser un número entero entre 1 y 200.' });
       }
 
-      const medidas = { pecho, cintura, cadera, hombros, manga };
+      const isCamisa = tipo_prenda === 'ambos' || tipo_prenda === 'camisa';
+      const isPantalon = tipo_prenda === 'ambos' || tipo_prenda === 'pantalon';
+
+      if (isCamisa && (!talla || !SIZES.includes(talla))) {
+        return res.status(400).json({ success: false, error: `Talla de camisa inválida: ${SIZES.join(', ')}.` });
+      }
+      if (isPantalon && (!talla_pantalon || !SIZES.includes(talla_pantalon))) {
+        return res.status(400).json({ success: false, error: `Talla de pantalón inválida: ${SIZES.join(', ')}.` });
+      }
+
+      const medidas = {};
+      if (isCamisa) Object.assign(medidas, { pecho, cintura, hombros, manga });
+      if (isPantalon) Object.assign(medidas, { cintura_pantalon, largo_pantalon });
+
       const faltantes = Object.keys(medidas).filter(
         (m) => isNaN(medidas[m]) || medidas[m] <= 0 || medidas[m] > 120
       );
@@ -187,7 +196,7 @@ export default async function handler(req, res) {
         });
       }
 
-      const tallaSugerida = calcularTallaSugerida(pecho, cadera);
+      const tallaSugerida = body.tallaSugerida || calcularTallaSugerida(pecho, cintura_pantalon);
       const uniqueId = `ord_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
 
       const nuevoPedido = {
@@ -195,14 +204,15 @@ export default async function handler(req, res) {
         fecha: body.fecha || new Date().toISOString(),
         nombre,
         cantidad,
+        tipo_prenda,
         talla,
+        talla_pantalon,
         tallaSugerida,
         pecho,
         cintura,
-        cadera,
         hombros,
         manga,
-        cadera_pantalon,
+        cintura_pantalon,
         largo_pantalon,
         hombro_cuello,
         torso,

@@ -206,12 +206,36 @@
 
           <div class="form-row-2">
             <div class="form-group">
+              <label for="editTipoPrenda">Tipo Prenda</label>
+              <select id="editTipoPrenda" required>
+                <option value="ambos">Camisa y Pantalón</option>
+                <option value="camisa">Solo Camisa</option>
+                <option value="pantalon">Solo Pantalón</option>
+              </select>
+            </div>
+            <div class="form-group">
               <label for="editCantidad">Cantidad</label>
               <input type="number" id="editCantidad" min="1" max="100" required>
             </div>
+          </div>
+
+          <div class="form-row-2">
             <div class="form-group">
-              <label for="editTalla">Talla pedida</label>
-              <select id="editTalla" required>
+              <label for="editTalla">Talla Camisa</label>
+              <select id="editTalla">
+                <option value="">N/A</option>
+                <option value="XS">XS</option>
+                <option value="S">S</option>
+                <option value="M">M</option>
+                <option value="L">L</option>
+                <option value="XL">XL</option>
+                <option value="XXL">XXL</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="editTallaPantalon">Talla Pantalón</label>
+              <select id="editTallaPantalon">
+                <option value="">N/A</option>
                 <option value="XS">XS</option>
                 <option value="S">S</option>
                 <option value="M">M</option>
@@ -222,36 +246,32 @@
             </div>
           </div>
 
-          <div class="form-row-3">
+          <div class="form-row-2">
             <div class="form-group">
               <label for="editPecho">Pecho (in)</label>
-              <input type="number" id="editPecho" step="0.25" required>
+              <input type="number" id="editPecho" step="0.25">
             </div>
             <div class="form-group">
               <label for="editCintura">Cintura (in)</label>
-              <input type="number" id="editCintura" step="0.25" required>
-            </div>
-            <div class="form-group">
-              <label for="editCadera">Cadera (in)</label>
-              <input type="number" id="editCadera" step="0.25" required>
+              <input type="number" id="editCintura" step="0.25">
             </div>
           </div>
 
           <div class="form-row-2">
             <div class="form-group">
               <label for="editHombros">Hombros (in)</label>
-              <input type="number" id="editHombros" step="0.25" required>
+              <input type="number" id="editHombros" step="0.25">
             </div>
             <div class="form-group">
               <label for="editManga">Manga (in)</label>
-              <input type="number" id="editManga" step="0.25" required>
+              <input type="number" id="editManga" step="0.25">
             </div>
           </div>
 
           <div class="form-row-2">
             <div class="form-group">
-              <label for="editCaderaPantalon">Cadera Pantalón (in)</label>
-              <input type="number" id="editCaderaPantalon" step="0.25">
+              <label for="editCinturaPantalon">Cintura Pantalón (in)</label>
+              <input type="number" id="editCinturaPantalon" step="0.25">
             </div>
             <div class="form-group">
               <label for="editLargoPantalon">Largo Pantalón (in)</label>

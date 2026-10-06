@@ -521,13 +521,14 @@
         </td>
         <td><strong>${escapeHTML(o.nombre)}</strong></td>
         <td><strong>${o.cantidad}</strong></td>
-        <td><span class="tag-size">${escapeHTML(o.talla)}</span></td>
+        <td>
+          <span class="tag-size">${escapeHTML(o.talla || 'N/A')}</span><br>
+          <small>${escapeHTML(o.talla_pantalon || '')}</small>
+        </td>
         <td><span class="tag-suggested">${escapeHTML(o.tallaSugerida || '-')}</span></td>
         <td class="measurements-block">
-          <span>Pecho:</span> ${o.pecho}" · <span>Cint:</span> ${o.cintura}"<br>
-          <span>Cadera:</span> ${o.cadera}" · <span>Homb:</span> ${o.hombros}"<br>
-          <span>Manga:</span> ${o.manga}"
-          ${o.cadera_pantalon || o.largo_pantalon ? `<br><span>Cad.Pant:</span> ${o.cadera_pantalon||'-'}" · <span>Larg.Pant:</span> ${o.largo_pantalon||'-'}"` : ''}
+          ${o.pecho ? `<span>Pecho:</span> ${o.pecho}" · <span>Cint:</span> ${o.cintura}"<br><span>Homb:</span> ${o.hombros}" · <span>Manga:</span> ${o.manga}"` : ''}
+          ${o.cintura_pantalon || o.largo_pantalon ? `<br><span>C.Pant:</span> ${o.cintura_pantalon||'-'}" · <span>Larg.Pant:</span> ${o.largo_pantalon||'-'}"` : ''}
           ${o.hombro_cuello || o.torso ? `<br><span>H.Cuello:</span> ${o.hombro_cuello||'-'}" · <span>Torso:</span> ${o.torso||'-'}"` : ''}
         </td>
         <td class="notes-text" title="${escapeHTML(o.notas || 'Sin notas especiales')}">
@@ -646,13 +647,14 @@
     $('editOrderFecha').value = order.fecha || '';
     $('editNombre').value = order.nombre || '';
     $('editCantidad').value = order.cantidad || 1;
-    $('editTalla').value = order.talla || 'M';
+    $('editTipoPrenda').value = order.tipo_prenda || 'ambos';
+    $('editTalla').value = order.talla || '';
+    $('editTallaPantalon').value = order.talla_pantalon || '';
     $('editPecho').value = order.pecho || '';
     $('editCintura').value = order.cintura || '';
-    $('editCadera').value = order.cadera || '';
     $('editHombros').value = order.hombros || '';
     $('editManga').value = order.manga || '';
-    $('editCaderaPantalon').value = order.cadera_pantalon || '';
+    $('editCinturaPantalon').value = order.cintura_pantalon || '';
     $('editLargoPantalon').value = order.largo_pantalon || '';
     $('editHombroCuello').value = order.hombro_cuello || '';
     $('editTorso').value = order.torso || '';
@@ -680,13 +682,14 @@
       fecha,
       nombre: $('editNombre').value.trim(),
       cantidad: parseInt($('editCantidad').value, 10) || 1,
-      talla: $('editTalla').value,
-      pecho: parseFloat($('editPecho').value),
-      cintura: parseFloat($('editCintura').value),
-      cadera: parseFloat($('editCadera').value),
-      hombros: parseFloat($('editHombros').value),
-      manga: parseFloat($('editManga').value),
-      cadera_pantalon: $('editCaderaPantalon').value ? parseFloat($('editCaderaPantalon').value) : null,
+      tipo_prenda: $('editTipoPrenda').value,
+      talla: $('editTalla').value || null,
+      talla_pantalon: $('editTallaPantalon').value || null,
+      pecho: $('editPecho').value ? parseFloat($('editPecho').value) : null,
+      cintura: $('editCintura').value ? parseFloat($('editCintura').value) : null,
+      hombros: $('editHombros').value ? parseFloat($('editHombros').value) : null,
+      manga: $('editManga').value ? parseFloat($('editManga').value) : null,
+      cintura_pantalon: $('editCinturaPantalon').value ? parseFloat($('editCinturaPantalon').value) : null,
       largo_pantalon: $('editLargoPantalon').value ? parseFloat($('editLargoPantalon').value) : null,
       hombro_cuello: $('editHombroCuello').value ? parseFloat($('editHombroCuello').value) : null,
       torso: $('editTorso').value ? parseFloat($('editTorso').value) : null,
@@ -848,12 +851,6 @@
           <circle class="m-dot" cx="76" cy="186" r="3.5"/>
           <circle class="m-dot" cx="124" cy="186" r="3.5"/>
 
-          <!-- Cadera -->
-          <line class="m-halo" x1="60" y1="240" x2="140" y2="240"/>
-          <line class="m-line" x1="60" y1="240" x2="140" y2="240"/>
-          <circle class="m-dot" cx="60" cy="240" r="3.5"/>
-          <circle class="m-dot" cx="140" cy="240" r="3.5"/>
-
           <!-- Manga -->
           <line class="m-halo" x1="52" y1="94" x2="41" y2="200"/>
           <line class="m-line" x1="52" y1="94" x2="41" y2="200"/>
@@ -861,7 +858,7 @@
           <circle class="m-dot" cx="41" cy="200" r="3.5"/>
 
           <!-- Medidas Nuevas -->
-          ${o.cadera_pantalon ? `
+          ${o.cintura_pantalon ? `
           <line class="m-halo" x1="63" y1="260" x2="137" y2="260"/>
           <line class="m-line" x1="63" y1="260" x2="137" y2="260"/>
           <circle class="m-dot" cx="63" cy="260" r="3.5"/>
@@ -899,22 +896,17 @@
         <text class="t-title" x="7" y="192">CINTURA</text>
         <text class="t-val" x="7" y="207">${o.cintura} in</text>
 
-        <line class="g-line" x1="200" y1="250" x2="245" y2="250"/>
-        <rect class="t-bg" x="245" y="233" width="72" height="34"/>
-        <text class="t-title" x="250" y="246">CADERA</text>
-        <text class="t-val" x="250" y="261">${o.cadera} in</text>
-
         <line class="g-line" x1="101" y1="160" x2="72" y2="260"/>
         <rect class="t-bg" x="2" y="243" width="70" height="34"/>
         <text class="t-title" x="7" y="256">L. MANGA</text>
         <text class="t-val" x="7" y="271">${o.manga} in</text>
 
         <!-- Etiquetas Nuevas -->
-        ${o.cadera_pantalon ? `
+        ${o.cintura_pantalon ? `
         <line class="g-line" x1="200" y1="270" x2="245" y2="270"/>
         <rect class="t-bg" x="245" y="253" width="72" height="34"/>
-        <text class="t-title" x="250" y="266">CAD. PANT</text>
-        <text class="t-val" x="250" y="281">${o.cadera_pantalon} in</text>` : ''}
+        <text class="t-title" x="250" y="266">CINT. PANT</text>
+        <text class="t-val" x="250" y="281">${o.cintura_pantalon} in</text>` : ''}
         
         ${o.largo_pantalon ? `
         <line class="g-line" x1="84" y1="280" x2="72" y2="300"/>
@@ -1008,15 +1000,13 @@
 
     // Tabla de Medidas a la derecha
     let yTable = y;
-    const medidas = [
-      ['Hombros (espalda)', `${o.hombros} in`],
-      ['Pecho (contorno busto)', `${o.pecho} in`],
-      ['Cintura (contorno)', `${o.cintura} in`],
-      ['Cadera (contorno)', `${o.cadera} in`],
-      ['Largo de Manga', `${o.manga} in`],
-    ];
+    const medidas = [];
+    if (o.hombros) medidas.push(['Hombros (espalda)', `${o.hombros} in`]);
+    if (o.pecho) medidas.push(['Pecho (contorno busto)', `${o.pecho} in`]);
+    if (o.cintura) medidas.push(['Cintura (contorno)', `${o.cintura} in`]);
+    if (o.manga) medidas.push(['Largo de Manga', `${o.manga} in`]);
 
-    if (o.cadera_pantalon) medidas.push(['Cadera Pantalón', `${o.cadera_pantalon} in`]);
+    if (o.cintura_pantalon) medidas.push(['Cintura Pantalón', `${o.cintura_pantalon} in`]);
     if (o.largo_pantalon) medidas.push(['Largo Pantalón', `${o.largo_pantalon} in`]);
     if (o.hombro_cuello) medidas.push(['Hombro Cuello', `${o.hombro_cuello} in`]);
     if (o.torso) medidas.push(['Torso (Cuello a Cint.)', `${o.torso} in`]);
@@ -1197,14 +1187,15 @@
       'Fecha',
       'Cliente',
       'Cantidad',
-      'Talla Pedida',
+      'Tipo Prenda',
+      'Talla Camisa',
+      'Talla Pantalón',
       'Talla Sugerida',
       'Pecho (in)',
       'Cintura (in)',
-      'Cadera (in)',
       'Hombros (in)',
       'Largo Manga (in)',
-      'Cadera Pantalón (in)',
+      'Cintura Pantalón (in)',
       'Largo Pantalón (in)',
       'Hombro Cuello (in)',
       'Torso (in)',
@@ -1216,14 +1207,15 @@
       `"${formatearFecha(o.fecha)}"`,
       `"${(o.nombre || '').replace(/"/g, '""')}"`,
       o.cantidad,
-      `"${o.talla}"`,
+      `"${o.tipo_prenda || 'ambos'}"`,
+      `"${o.talla || ''}"`,
+      `"${o.talla_pantalon || ''}"`,
       `"${o.tallaSugerida || ''}"`,
-      o.pecho,
-      o.cintura,
-      o.cadera,
-      o.hombros,
-      o.manga,
-      o.cadera_pantalon || '',
+      o.pecho || '',
+      o.cintura || '',
+      o.hombros || '',
+      o.manga || '',
+      o.cintura_pantalon || '',
       o.largo_pantalon || '',
       o.hombro_cuello || '',
       o.torso || '',

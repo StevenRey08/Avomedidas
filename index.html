@@ -64,14 +64,6 @@
               <circle cx="124" cy="186" r="4"/>
             </g>
 
-            <g class="zone" data-k="cadera" tabindex="0" role="button" aria-label="Medir cadera">
-              <line class="hit" x1="60" y1="240" x2="140" y2="240"/>
-              <line class="halo" x1="60" y1="240" x2="140" y2="240"/>
-              <line class="core" x1="60" y1="240" x2="140" y2="240"/>
-              <circle cx="60" cy="240" r="4"/>
-              <circle cx="140" cy="240" r="4"/>
-            </g>
-
             <g class="zone" data-k="manga" tabindex="0" role="button" aria-label="Medir largo de manga">
               <line class="hit" x1="52" y1="94" x2="41" y2="200"/>
               <line class="halo" x1="52" y1="94" x2="41" y2="200"/>
@@ -85,7 +77,7 @@
               <circle cx="159" cy="200" r="4"/>
             </g>
 
-            <g class="zone" data-k="cadera_pantalon" tabindex="0" role="button" aria-label="Medir cadera pantalón">
+            <g class="zone" data-k="cintura_pantalon" tabindex="0" role="button" aria-label="Medir cintura pantalón">
               <line class="hit" x1="63" y1="260" x2="137" y2="260"/>
               <line class="halo" x1="63" y1="260" x2="137" y2="260"/>
               <line class="core" x1="63" y1="260" x2="137" y2="260"/>
@@ -142,8 +134,16 @@
                 <input id="cantidad" name="cantidad" type="number" min="1" max="50" value="1" inputmode="numeric" required>
               </label>
 
-              <label>Talla que pides
-                <select id="talla" name="talla" required>
+              <label>Tipo de Prenda
+                <select id="tipo_prenda" name="tipo_prenda" required>
+                  <option value="ambos">Camisa y Pantalón</option>
+                  <option value="camisa">Solo Camisa</option>
+                  <option value="pantalon">Solo Pantalón</option>
+                </select>
+              </label>
+
+              <label class="group-camisa">Talla Camisa
+                <select id="talla" name="talla">
                   <option value="">Elegir talla</option>
                   <option value="XS">XS</option>
                   <option value="S">S</option>
@@ -154,40 +154,48 @@
                 </select>
               </label>
 
-              <label>Pecho<small>Alrededor de la parte más ancha</small>
-                <input id="pecho" name="pecho" type="number" min="20" max="80" step="0.25" inputmode="decimal" placeholder="pulgadas" required>
+              <label class="group-pantalon">Talla Pantalón
+                <select id="talla_pantalon" name="talla_pantalon">
+                  <option value="">Elegir talla</option>
+                  <option value="XS">XS</option>
+                  <option value="S">S</option>
+                  <option value="M">M</option>
+                  <option value="L">L</option>
+                  <option value="XL">XL</option>
+                  <option value="XXL">XXL</option>
+                </select>
               </label>
 
-              <label>Cintura<small>Alrededor de la parte más estrecha</small>
-                <input id="cintura" name="cintura" type="number" min="15" max="75" step="0.25" inputmode="decimal" placeholder="pulgadas" required>
+              <label class="group-camisa">Pecho<small>Alrededor de la parte más ancha</small>
+                <input id="pecho" name="pecho" type="number" min="20" max="80" step="0.25" inputmode="decimal" placeholder="pulgadas">
               </label>
 
-              <label>Cadera<small>Alrededor de la parte más ancha</small>
-                <input id="cadera" name="cadera" type="number" min="20" max="85" step="0.25" inputmode="decimal" placeholder="pulgadas" required>
+              <label class="group-camisa">Cintura<small>Alrededor de la parte más estrecha</small>
+                <input id="cintura" name="cintura" type="number" min="15" max="75" step="0.25" inputmode="decimal" placeholder="pulgadas">
               </label>
 
-              <label>Hombros<small>De un hombro al otro, por la espalda</small>
-                <input id="hombros" name="hombros" type="number" min="10" max="35" step="0.25" inputmode="decimal" placeholder="pulgadas" required>
+              <label class="group-camisa">Hombros<small>De un hombro al otro, por la espalda</small>
+                <input id="hombros" name="hombros" type="number" min="10" max="35" step="0.25" inputmode="decimal" placeholder="pulgadas">
               </label>
 
-              <label>Largo de manga<small>Del hombro a la muñeca</small>
-                <input id="manga" name="manga" type="number" min="12" max="45" step="0.25" inputmode="decimal" placeholder="pulgadas" required>
+              <label class="group-camisa">Largo de manga<small>Del hombro a la muñeca</small>
+                <input id="manga" name="manga" type="number" min="12" max="45" step="0.25" inputmode="decimal" placeholder="pulgadas">
               </label>
 
-              <label>Cadera Pantalón<small>Contorno de la cadera</small>
-                <input id="cadera_pantalon" name="cadera_pantalon" type="number" min="20" max="85" step="0.25" inputmode="decimal" placeholder="pulgadas">
-              </label>
-
-              <label>Largo Pantalón<small>De la cintura al tobillo</small>
-                <input id="largo_pantalon" name="largo_pantalon" type="number" min="20" max="60" step="0.25" inputmode="decimal" placeholder="pulgadas">
-              </label>
-
-              <label>Hombro Cuello<small>Del cuello al hombro</small>
+              <label class="group-camisa">Hombro Cuello<small>Del cuello al hombro</small>
                 <input id="hombro_cuello" name="hombro_cuello" type="number" min="3" max="15" step="0.25" inputmode="decimal" placeholder="pulgadas">
               </label>
 
-              <label>Torso<small>Del cuello a la cintura</small>
+              <label class="group-camisa">Torso<small>Del cuello a la cintura</small>
                 <input id="torso" name="torso" type="number" min="10" max="35" step="0.25" inputmode="decimal" placeholder="pulgadas">
+              </label>
+
+              <label class="group-pantalon">Cintura Pantalón<small>Contorno para el pantalón</small>
+                <input id="cintura_pantalon" name="cintura_pantalon" type="number" min="20" max="85" step="0.25" inputmode="decimal" placeholder="pulgadas">
+              </label>
+
+              <label class="group-pantalon">Largo Pantalón<small>De la cintura al tobillo</small>
+                <input id="largo_pantalon" name="largo_pantalon" type="number" min="20" max="60" step="0.25" inputmode="decimal" placeholder="pulgadas">
               </label>
 
               <label class="wide">Notas para la confección (opcional)
