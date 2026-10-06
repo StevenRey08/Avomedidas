@@ -534,60 +534,70 @@
     const fotoTelaObj = await prepararCanvasImagen(o.foto_tela);
     const tieneFotos = Boolean(fotoClienteObj || fotoTelaObj);
 
-    // Pie de página de la ficha (Hoja 1)
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(130, 150, 130);
+    // Sección de fotos inline (misma hoja) ─ tira horizontal compacta
+    let yFotos = yTela + 12;
     if (tieneFotos) {
-      doc.text('Avocat Confecciones · Ficha Técnica Oficial · Página 1 de 2', 105, 290, { align: 'center' });
+      // Título de sección
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8.5);
+      doc.setFontSize(9);
       doc.setTextColor.apply(doc, COLOR_GREEN);
-      doc.text('📸 Incluye Anexo Fotográfico en la Página 2', 125, yTela + 5);
-    } else {
-      doc.text('Avocat Confecciones · Ficha Técnica Oficial', 105, 290, { align: 'center' });
-    }
+      doc.text('📸 Fotografías del Pedido', 15, yFotos);
 
-    // --- SECCIÓN ANEXOS FOTOGRÁFICOS (HOJA 2) ---
-    if (tieneFotos) {
-      doc.addPage();
-      agregarCabeceraPDF(doc, 'Anexo Fotográfico');
+      const FOTO_H = 42;   // altura de cada foto en mm
+      const FOTO_W_1 = 83; // ancho cuando hay UNA sola foto
+      const FOTO_W_2 = 82; // ancho cuando hay DOS fotos
+      const GAP      = 8;  // espacio entre las dos fotos
+      yFotos += 3;
 
-      // Resumen del pedido
-      doc.setFillColor.apply(doc, COLOR_LIGHT);
-      doc.roundedRect(15, 38, 180, 11, 2, 2, 'F');
-      doc.setDrawColor.apply(doc, COLOR_GREEN);
-      doc.setLineWidth(0.3);
-      doc.roundedRect(15, 38, 180, 11, 2, 2, 'D');
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8.5);
-      doc.setTextColor.apply(doc, COLOR_GREEN);
-      doc.text(`Cliente: ${(o.nombre || '-').slice(0, 30)}`, 19, 45);
-      doc.text(`Pedido: ${o.id || '-'}`, 90, 45);
-      doc.text(`Talla: ${o.talla || o.talla_pantalon || '-'}`, 155, 45);
-
-      const yCards = 53;
-      const cardHeight = 222;
-
-      if (fotoClienteObj && fotoTelaObj) {
-        const cardW = 87;
-        dibujarFotoEnPDF(doc, fotoClienteObj, 15, yCards, cardW, cardHeight, 'Foto del Cliente / Modelo', 'Referencia anatómica, postura y contextura');
-        dibujarFotoEnPDF(doc, fotoTelaObj, 108, yCards, cardW, cardHeight, 'Foto de la Tela / Muestra', 'Referencia de tono, textura y caída textil');
-      } else if (fotoClienteObj) {
-        const cardW = 140;
-        dibujarFotoEnPDF(doc, fotoClienteObj, 35, yCards, cardW, cardHeight, 'Foto del Cliente / Modelo', 'Referencia anatómica, postura y contextura del cliente');
-      } else if (fotoTelaObj) {
-        const cardW = 140;
-        dibujarFotoEnPDF(doc, fotoTelaObj, 35, yCards, cardW, cardHeight, 'Foto de la Tela / Muestra', 'Referencia de tono, textura y caída textil seleccionada');
+      function dibujarTarjetaCompacta(item, tarjX, tarjY, tarjW, etiqueta) {
+        if (!item) return;
+        // Marco
+        doc.setFillColor(252, 254, 250);
+        doc.roundedRect(tarjX, tarjY, tarjW, FOTO_H + 9, 2, 2, 'F');
+        doc.setDrawColor.apply(doc, COLOR_GREEN);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(tarjX, tarjY, tarjW, FOTO_H + 9, 2, 2, 'D');
+        // Cabecera de la tarjeta
+        doc.setFillColor.apply(doc, COLOR_GREEN);
+        doc.roundedRect(tarjX, tarjY, tarjW, 7, 2, 2, 'F');
+        doc.rect(tarjX, tarjY + 3, tarjW, 4, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.5);
+        doc.setTextColor(255, 255, 255);
+        doc.text(etiqueta, tarjX + tarjW / 2, tarjY + 5.2, { align: 'center' });
+        // Imagen
+        const pad = 3;
+        const imgAreaW = tarjW - pad * 2;
+        const imgAreaH = FOTO_H;
+        const ratio = Math.min(imgAreaW / item.width, imgAreaH / item.height);
+        const dW = item.width * ratio;
+        const dH = item.height * ratio;
+        const dX = tarjX + pad + (imgAreaW - dW) / 2;
+        const dY = tarjY + 7 + (imgAreaH - dH) / 2;
+        doc.setFillColor(255, 255, 255);
+        doc.rect(tarjX + pad, tarjY + 7, imgAreaW, imgAreaH, 'F');
+        try {
+          doc.addImage(item.canvas, 'JPEG', dX, dY, dW, dH);
+        } catch (e) {
+          try { doc.addImage(item.canvas.toDataURL('image/jpeg', 0.85), 'JPEG', dX, dY, dW, dH); } catch {}
+        }
       }
 
-      // Pie de página de la hoja 2
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.setTextColor(130, 150, 130);
-      doc.text('Avocat Confecciones · Ficha Técnica Oficial · Página 2 de 2', 105, 290, { align: 'center' });
+      if (fotoClienteObj && fotoTelaObj) {
+        dibujarTarjetaCompacta(fotoClienteObj, 15,            yFotos, FOTO_W_2, 'Foto del Cliente');
+        dibujarTarjetaCompacta(fotoTelaObj,    15 + FOTO_W_2 + GAP, yFotos, FOTO_W_2, 'Foto de la Tela');
+      } else {
+        const startX = 15 + (180 - FOTO_W_1) / 2;
+        dibujarTarjetaCompacta(fotoClienteObj || fotoTelaObj, startX, yFotos, FOTO_W_1,
+          fotoClienteObj ? 'Foto del Cliente' : 'Foto de la Tela');
+      }
     }
+
+    // Pie de página único
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(130, 150, 130);
+    doc.text('Avocat Confecciones · Ficha Técnica Oficial', 105, 290, { align: 'center' });
   }
 
   async function descargarPDF(order, nombreArchivo) {
