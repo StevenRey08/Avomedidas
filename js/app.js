@@ -427,6 +427,16 @@
     const notas = o.notas || 'Sin especificaciones adicionales indicadas por el cliente.';
     doc.text(doc.splitTextToSize(notas, 83), 110, yTable + 6);
 
+    // Tipo de tela (textbox vacio para escribir a mano)
+    let yTela = Math.max(yTable + 39, y + 95) + 8;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor.apply(doc, COLOR_GREEN);
+    doc.text('Tipo de Tela:', 16, yTela + 5);
+    doc.setDrawColor.apply(doc, COLOR_GREEN);
+    doc.setFillColor(250, 252, 248);
+    doc.rect(42, yTela, 153, 7, 'FD'); // Box para tipo de tela
+
     // Pie de página de la ficha
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
