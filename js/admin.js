@@ -859,6 +859,28 @@
           <line class="m-line" x1="52" y1="94" x2="41" y2="200"/>
           <circle class="m-dot" cx="52" cy="94" r="3.5"/>
           <circle class="m-dot" cx="41" cy="200" r="3.5"/>
+
+          <!-- Medidas Nuevas -->
+          ${o.cadera_pantalon ? `
+          <line class="m-halo" x1="63" y1="260" x2="137" y2="260"/>
+          <line class="m-line" x1="63" y1="260" x2="137" y2="260"/>
+          <circle class="m-dot" cx="63" cy="260" r="3.5"/>
+          <circle class="m-dot" cx="137" cy="260" r="3.5"/>` : ''}
+          ${o.largo_pantalon ? `
+          <line class="m-halo" x1="84" y1="186" x2="84" y2="380"/>
+          <line class="m-line" x1="84" y1="186" x2="84" y2="380"/>
+          <circle class="m-dot" cx="84" cy="186" r="3.5"/>
+          <circle class="m-dot" cx="84" cy="380" r="3.5"/>` : ''}
+          ${o.hombro_cuello ? `
+          <line class="m-halo" x1="90" y1="74" x2="60" y2="86"/>
+          <line class="m-line" x1="90" y1="74" x2="60" y2="86"/>
+          <circle class="m-dot" cx="90" cy="74" r="3.5"/>
+          <circle class="m-dot" cx="60" cy="86" r="3.5"/>` : ''}
+          ${o.torso ? `
+          <line class="m-halo" x1="100" y1="74" x2="100" y2="186"/>
+          <line class="m-line" x1="100" y1="74" x2="100" y2="186"/>
+          <circle class="m-dot" cx="100" cy="74" r="3.5"/>
+          <circle class="m-dot" cx="100" cy="186" r="3.5"/>` : ''}
         </g>
 
         <!-- Etiquetas de medidas en la silueta -->
@@ -886,6 +908,31 @@
         <rect class="t-bg" x="2" y="243" width="70" height="34"/>
         <text class="t-title" x="7" y="256">L. MANGA</text>
         <text class="t-val" x="7" y="271">${o.manga} in</text>
+
+        <!-- Etiquetas Nuevas -->
+        ${o.cadera_pantalon ? `
+        <line class="g-line" x1="200" y1="270" x2="245" y2="270"/>
+        <rect class="t-bg" x="245" y="253" width="72" height="34"/>
+        <text class="t-title" x="250" y="266">CAD. PANT</text>
+        <text class="t-val" x="250" y="281">${o.cadera_pantalon} in</text>` : ''}
+        
+        ${o.largo_pantalon ? `
+        <line class="g-line" x1="84" y1="280" x2="72" y2="300"/>
+        <rect class="t-bg" x="2" y="283" width="70" height="34"/>
+        <text class="t-title" x="7" y="296">L. PANT</text>
+        <text class="t-val" x="7" y="311">${o.largo_pantalon} in</text>` : ''}
+
+        ${o.hombro_cuello ? `
+        <line class="g-line" x1="75" y1="80" x2="40" y2="40"/>
+        <rect class="t-bg" x="2" y="23" width="70" height="34"/>
+        <text class="t-title" x="7" y="36">HOMB. CUE</text>
+        <text class="t-val" x="7" y="51">${o.hombro_cuello} in</text>` : ''}
+
+        ${o.torso ? `
+        <line class="g-line" x1="100" y1="130" x2="150" y2="100"/>
+        <rect class="t-bg" x="150" y="83" width="70" height="34"/>
+        <text class="t-title" x="155" y="96">TORSO</text>
+        <text class="t-val" x="155" y="111">${o.torso} in</text>` : ''}
       </svg>
       `;
 
