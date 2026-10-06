@@ -1,6 +1,7 @@
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { fileURLToPath } from 'url';
 import pedidosHandler from './api/pedidos.js';
 import healthHandler from './api/health.js';
@@ -9,6 +10,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PORT = process.env.PORT || 3000;
 
+// Protección para que el servidor nunca se caiga por errores imprevistos
+process.on('uncaughtException', (err) => {
+  console.error('[Avomedidas Servidor] Error no controlado (recuperado):', err.message);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[Avomedidas Servidor] Rechazo de promesa no controlado:', reason);
+});
+
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -16,9 +26,24 @@ const MIME_TYPES = {
   '.json': 'application/json; charset=utf-8',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
 };
+
+function getLocalIp() {
+  try {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+      for (const net of interfaces[name]) {
+        if (net.family === 'IPv4' && !net.internal) {
+          return net.address;
+        }
+      }
+    }
+  } catch {}
+  return null;
+}
 
 // Polyfill Vercel-like res helper methods for standalone local node server
 function enhanceResponse(req, res) {
@@ -62,56 +87,72 @@ const server = http.createServer(async (req, res) => {
   });
 
   req.on('end', async () => {
-    if (bodyData) {
-      try {
-        req.body = JSON.parse(bodyData);
-      } catch {
-        req.body = bodyData;
+    try {
+      if (bodyData) {
+        try {
+          req.body = JSON.parse(bodyData);
+        } catch {
+          req.body = bodyData;
+        }
+      } else {
+        req.body = {};
       }
-    } else {
-      req.body = {};
-    }
 
-    // Serverless functions routing
-    if (pathname === '/api/pedidos' || pathname === '/api/pedidos/') {
-      return pedidosHandler(req, res);
-    }
-    if (pathname === '/api/health' || pathname === '/api/health/') {
-      return healthHandler(req, res);
-    }
-
-    // Static file serving
-    let filePath;
-    if (pathname === '/admin' || pathname === '/admin/') {
-      filePath = path.join(__dirname, 'admin.html');
-    } else if (pathname === '/' || pathname === '') {
-      filePath = path.join(__dirname, 'index.html');
-    } else {
-      filePath = path.join(__dirname, pathname);
-    }
-
-    // If file doesn't exist, try index.html
-    if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
-      filePath = path.join(__dirname, 'index.html');
-    }
-
-    const ext = path.extname(filePath).toLowerCase();
-    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-
-    fs.readFile(filePath, (err, content) => {
-      if (err) {
-        res.writeHead(404, { 'Content-Type': 'text/plain' });
-        res.end('404 Not Found');
-        return;
+      // Serverless functions routing
+      if (pathname === '/api/pedidos' || pathname === '/api/pedidos/') {
+        return pedidosHandler(req, res);
       }
-      res.writeHead(200, { 'Content-Type': contentType });
-      res.end(content);
-    });
+      if (pathname === '/api/health' || pathname === '/api/health/') {
+        return healthHandler(req, res);
+      }
+
+      // Static file serving
+      let filePath;
+      if (pathname === '/admin' || pathname === '/admin/') {
+        filePath = path.join(__dirname, 'admin.html');
+      } else if (pathname === '/' || pathname === '') {
+        filePath = path.join(__dirname, 'index.html');
+      } else {
+        filePath = path.join(__dirname, pathname);
+      }
+
+      // If file doesn't exist, try index.html
+      if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+        filePath = path.join(__dirname, 'index.html');
+      }
+
+      const ext = path.extname(filePath).toLowerCase();
+      const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+
+      fs.readFile(filePath, (err, content) => {
+        if (err) {
+          res.writeHead(404, { 'Content-Type': 'text/plain' });
+          res.end('404 Not Found');
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': contentType });
+        res.end(content);
+      });
+    } catch (routeErr) {
+      console.error('[Error de ruta]', routeErr);
+      if (!res.headersSent) {
+        res.statusCode = 500;
+        res.end('Error interno del servidor');
+      }
+    }
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`\nServidor Avomedidas activo en http://localhost:${PORT}`);
-  console.log(`API Serverless disponible en http://localhost:${PORT}/api/pedidos`);
-  console.log(`Portal de administracion disponible en http://localhost:${PORT}/admin\n`);
+server.listen(PORT, '0.0.0.0', () => {
+  const localIp = getLocalIp();
+  console.log(`\n============================================================`);
+  console.log(`  AVOMEDIDAS - SERVIDOR ACTIVO Y LISTO PARA LA TIENDA`);
+  console.log(`============================================================`);
+  console.log(`> En esta computadora:             http://localhost:${PORT}`);
+  if (localIp) {
+    console.log(`> En tablets/móviles de la tienda: http://${localIp}:${PORT}`);
+  }
+  console.log(`> Panel privado del taller:        http://localhost:${PORT}/admin`);
+  console.log(`> API de pedidos y sincronización: http://localhost:${PORT}/api/pedidos`);
+  console.log(`============================================================\n`);
 });

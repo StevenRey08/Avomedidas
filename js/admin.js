@@ -16,20 +16,28 @@
   const COLOR_LIGHT = [241, 248, 236];
 
   function getApiBase() {
-    // Si estamos en producción (Vercel o dominio web)
-    const isProduction =
-      window.location.protocol !== 'file:' &&
-      !['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname);
-    if (isProduction) {
-      return '';
-    }
-
-    // Si estamos corriendo directamente en el servidor Node local (puerto 3000)
+    // Si la página se sirve desde el servidor Node (puerto 3000)
     if (window.location.port === '3000') {
       return '';
     }
 
-    // En cualquier otro caso local (file://, Live Server puerto 5500, etc.)
+    // Si estamos en un dominio web de producción (Vercel, custom domain)
+    const isDomainWeb =
+      window.location.protocol.startsWith('http') &&
+      !['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname) &&
+      !window.location.hostname.startsWith('192.168.') &&
+      !window.location.hostname.startsWith('10.') &&
+      !window.location.hostname.startsWith('172.');
+    if (isDomainWeb) {
+      return '';
+    }
+
+    // Si estamos en una IP de la red local de la tienda pero en otro puerto
+    if (window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.')) {
+      return `http://${window.location.hostname}:3000`;
+    }
+
+    // Por defecto en local (file://, Live Server 5500, localhost)
     return 'http://localhost:3000';
   }
 
@@ -216,12 +224,25 @@
 
     // Prioridad a los de servidor
     serverOrders.forEach((o) => orderMap.set(o.id, o));
-    // Agregar locales si no están en servidor
-    localOrders.forEach((o) => {
-      if (!orderMap.has(o.id)) {
-        orderMap.set(o.id, o);
+    // Sincronizar pedidos locales que falten en el servidor para persistirlos en disco
+    if (serverOk && localOrders.length > 0) {
+      for (const lo of localOrders) {
+        if (!orderMap.has(lo.id)) {
+          orderMap.set(lo.id, lo);
+          fetch(`${API_BASE}/api/pedidos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(lo),
+          }).catch(() => {});
+        }
       }
-    });
+    } else {
+      localOrders.forEach((o) => {
+        if (!orderMap.has(o.id)) {
+          orderMap.set(o.id, o);
+        }
+      });
+    }
 
     orders = Array.from(orderMap.values());
     // Ordenar de más reciente a más antiguo
@@ -315,8 +336,11 @@
           ${escapeHTML(o.notas || '—')}
         </td>
         <td class="actions-group">
+          <button type="button" class="btn-action btn-edit" data-action="edit" data-id="${escapeHTML(o.id)}" title="Editar medidas o datos del pedido">
+            Editar
+          </button>
           <button type="button" class="btn-action" data-action="pdf" data-id="${escapeHTML(o.id)}" title="Descargar informe de confección con silueta">
-            Informe PDF
+            PDF
           </button>
           <button type="button" class="btn-action btn-del" data-action="del" data-id="${escapeHTML(o.id)}" title="Eliminar pedido">
             Eliminar
@@ -340,6 +364,11 @@
     const id = btn.getAttribute('data-id');
     const order = orders.find((x) => x.id === id);
     if (!order) return;
+
+    if (action === 'edit') {
+      abrirModalEdicion(order);
+      return;
+    }
 
     if (action === 'pdf') {
       const originalText = btn.textContent;
@@ -379,6 +408,108 @@
       const totalPrendas = orders.reduce((sum, o) => sum + (parseInt(o.cantidad, 10) || 1), 0);
       $('statGarments').textContent = totalPrendas;
       $('ordersCountBadge').textContent = orders.length;
+    }
+  });
+
+  /* ------------------- EDICIÓN DE PEDIDOS ------------------- */
+  function abrirModalEdicion(order) {
+    $('editOrderId').value = order.id || '';
+    $('editOrderFecha').value = order.fecha || '';
+    $('editNombre').value = order.nombre || '';
+    $('editCantidad').value = order.cantidad || 1;
+    $('editTalla').value = order.talla || 'M';
+    $('editPecho').value = order.pecho || '';
+    $('editCintura').value = order.cintura || '';
+    $('editCadera').value = order.cadera || '';
+    $('editHombros').value = order.hombros || '';
+    $('editManga').value = order.manga || '';
+    $('editNotas').value = order.notas || '';
+    $('editModal').style.display = 'flex';
+    $('editNombre').focus();
+  }
+
+  function cerrarModalEdicion() {
+    $('editModal').style.display = 'none';
+  }
+
+  $('btnCancelEdit').addEventListener('click', cerrarModalEdicion);
+  $('btnCancelEdit2').addEventListener('click', cerrarModalEdicion);
+  $('editModal').addEventListener('click', (e) => {
+    if (e.target === $('editModal')) cerrarModalEdicion();
+  });
+
+  $('editOrderForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const id = $('editOrderId').value;
+    const fecha = $('editOrderFecha').value || new Date().toISOString();
+    const payload = {
+      id,
+      fecha,
+      nombre: $('editNombre').value.trim(),
+      cantidad: parseInt($('editCantidad').value, 10) || 1,
+      talla: $('editTalla').value,
+      pecho: parseFloat($('editPecho').value),
+      cintura: parseFloat($('editCintura').value),
+      cadera: parseFloat($('editCadera').value),
+      hombros: parseFloat($('editHombros').value),
+      manga: parseFloat($('editManga').value),
+      notas: $('editNotas').value.trim(),
+    };
+
+    const btn = $('btnSaveEdit');
+    const origText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Guardando...';
+
+    try {
+      const res = await fetch(`${API_BASE}/api/pedidos`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-token': authToken,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const text = await res.text();
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {}
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Error del servidor');
+      }
+
+      const updatedOrder = data.order || payload;
+
+      // Actualizar en array en memoria
+      const idx = orders.findIndex((x) => x.id === id);
+      if (idx >= 0) {
+        orders[idx] = updatedOrder;
+      }
+
+      // Actualizar en localStorage
+      try {
+        const localList = obtenerPedidosLocales();
+        const lIdx = localList.findIndex((x) => x.id === id);
+        if (lIdx >= 0) {
+          localList[lIdx] = updatedOrder;
+        } else {
+          localList.unshift(updatedOrder);
+        }
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(localList));
+      } catch {}
+
+      renderTabla();
+      const totalPrendas = orders.reduce((sum, o) => sum + (parseInt(o.cantidad, 10) || 1), 0);
+      $('statGarments').textContent = totalPrendas;
+      cerrarModalEdicion();
+    } catch (err) {
+      alert('No se pudo guardar la modificación: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = origText;
     }
   });
 

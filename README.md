@@ -67,7 +67,29 @@ El servidor local se encuentra activo en tu maquina:
 
 ---
 
-## Despliegue en Vercel
+## Uso en Tienda Física / Local de Ropa (Auto-Arranque)
+
+El sistema está preparado para funcionar **24/7 en la computadora del local de ropa sin necesidad de administración técnica**:
+
+1. **Auto-Arranque Automático con Windows**:
+   - Ejecuta `1-INSTALAR-AUTO-INICIO-WINDOWS.bat` (una sola vez).
+   - Cada vez que se encienda la computadora del local por la mañana, el servidor iniciará automáticamente en segundo plano sin ventanas negras de consola.
+2. **Acceso desde Tablets / Teléfonos en la Tienda**:
+   - Conecta la tablet o celular a la misma red Wi-Fi del local.
+   - Abre la dirección IP local indicada (ejemplo: `http://192.168.100.10:3000`) para tomar medidas directamente en el probador.
+3. **Persistencia Permanente en Disco**:
+   - Todos los pedidos se guardan de forma permanente en `data/pedidos.json`.
+   - Aunque la computadora se apague o se reinicie, ningún dato se pierde.
+4. **Scripts de Gestión de 1 Clic**:
+   - `INICIAR-SERVIDOR.bat`: Inicia el servidor manualmente en segundo plano y abre la web.
+   - `DETENER-SERVIDOR.bat`: Detiene el servidor si se requiere mantenimiento.
+   - `ESTADO-SERVIDOR.bat`: Muestra si el servidor está encendido, la IP para tablets y pedidos guardados.
+   - `ABRIR-FORMULARIO-TIENDA.bat`: Acceso directo al formulario de toma de medidas.
+   - `ABRIR-PANEL-TALLER.bat`: Acceso directo al panel privado de confección.
+
+---
+
+## Despliegue en Vercel (Opcional si se publica en Internet)
 
 ```powershell
 # Desplegar en Vercel
@@ -76,8 +98,9 @@ vercel --prod
 
 ### Variables de Entorno en Vercel (opcional):
 1. **Base de Datos Redis (Upstash / Vercel KV)**:
-   - En la pestana **Storage** de tu proyecto Vercel, anade **KV (Upstash)**.
-   - Vercel inyectara automaticamente `KV_REST_API_URL` y `KV_REST_API_TOKEN`.
+   - En la pestaña **Storage** de tu proyecto Vercel, añade **KV (Upstash)**.
+   - Vercel inyectará automáticamente `KV_REST_API_URL` y `KV_REST_API_TOKEN`.
 2. **Credenciales de Acceso al Taller**:
    - `ADMIN_USER`: `avomarca`
    - `ADMIN_PASSWORD`: `avo1234`
+

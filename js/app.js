@@ -396,24 +396,63 @@
   }
 
   function getApiBase() {
-    // Si estamos en producción (Vercel o dominio web)
-    const isProduction =
-      window.location.protocol !== 'file:' &&
-      !['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname);
-    if (isProduction) {
-      return '';
-    }
-
-    // Si estamos corriendo directamente en el servidor Node local (puerto 3000)
+    // Si la página se sirve desde el servidor Node (puerto 3000)
     if (window.location.port === '3000') {
       return '';
     }
 
-    // En cualquier otro caso local (file://, Live Server puerto 5500, etc.)
+    // Si estamos en un dominio web de producción (Vercel, custom domain)
+    const isDomainWeb =
+      window.location.protocol.startsWith('http') &&
+      !['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname) &&
+      !window.location.hostname.startsWith('192.168.') &&
+      !window.location.hostname.startsWith('10.') &&
+      !window.location.hostname.startsWith('172.');
+    if (isDomainWeb) {
+      return '';
+    }
+
+    // Si estamos en una IP de la red local de la tienda pero en otro puerto
+    if (window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.')) {
+      return `http://${window.location.hostname}:3000`;
+    }
+
+    // Por defecto en local (file://, Live Server 5500, localhost)
     return 'http://localhost:3000';
   }
 
   const API_BASE = getApiBase();
+
+  /* ------------------- SINCRONIZACIÓN DE PEDIDOS PENDIENTES ------------------- */
+  async function sincronizarPedidosPendientes() {
+    try {
+      const locales = obtenerPedidosLocales();
+      if (!locales || locales.length === 0) return;
+
+      for (let i = 0; i < locales.length; i++) {
+        const p = locales[i];
+        if (!p._sincronizado) {
+          try {
+            const res = await fetch(`${API_BASE}/api/pedidos`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(p),
+            });
+            if (res.ok) {
+              p._sincronizado = true;
+            }
+          } catch {}
+        }
+      }
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(locales));
+    } catch {}
+  }
+
+  // Sincronizar en arranque y al recuperar conexión
+  if (typeof window !== 'undefined') {
+    window.addEventListener('load', sincronizarPedidosPendientes);
+    window.addEventListener('online', sincronizarPedidosPendientes);
+  }
 
   /* ------------------- ENVÍO A VERCEL SERVERLESS & REDIS ------------------- */
   async function enviarPedidoAPI(datosPedido) {
@@ -432,7 +471,7 @@
 
       text = await res.text();
     } catch (netErr) {
-      console.warn('Servidor backend no disponible directamente:', netErr);
+      console.warn('Servidor backend no disponible en este momento:', netErr);
       networkError = netErr;
     }
 
@@ -446,7 +485,9 @@
       }
 
       if (data.success) {
-        guardarEnLocalStorage(data.order || datosPedido);
+        const orderGuardado = data.order || datosPedido;
+        orderGuardado._sincronizado = true;
+        guardarEnLocalStorage(orderGuardado);
         return data;
       }
       throw new Error(data.error || 'Error al procesar el pedido en el servidor.');
@@ -461,14 +502,15 @@
       throw new Error(data.error || 'Datos del pedido incompletos o inválidos.');
     }
 
-    // Si el servidor no está en ejecución o respondió error no controlado (ej. 404/500 en Live Server estático)
-    // Se guarda en almacenamiento local para asegurar que el cliente no pierda sus datos y pueda descargar su ficha
+    // Si el servidor está apagado o no responde en este momento:
+    // Guardar copia de seguridad en disco local de la máquina del cliente
     const uniqueId = `ord_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
     const pedidoConId = {
       ...datosPedido,
       id: uniqueId,
       fecha: new Date().toISOString(),
       tallaSugerida: calcularTallaSugerida(datosPedido.pecho, datosPedido.cadera),
+      _sincronizado: false,
     };
 
     guardarEnLocalStorage(pedidoConId);
@@ -477,7 +519,7 @@
       success: true,
       order: pedidoConId,
       provider: 'local-backup',
-      message: 'Pedido guardado correctamente en almacenamiento local.',
+      message: 'Pedido guardado en esta máquina (se sincronizará en cuanto el servidor esté activo).',
     };
   }
 
