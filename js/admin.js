@@ -10,6 +10,7 @@
   let orders = [];
   let authToken = sessionStorage.getItem('avocat_admin_token') || '';
   let authUser = sessionStorage.getItem('avocat_admin_user') || '';
+  let healthCheckInterval = null;
 
   const COLOR_GREEN = [31, 74, 34];
   const COLOR_LIGHT = [241, 248, 236];
@@ -148,9 +149,13 @@
     $('dashboardSection').style.display = 'block';
     $('sessionBar').style.display = 'flex';
     $('sessionUserLabel').textContent = `Usuario: ${authUser || 'avomarca'}`;
+    clearInterval(healthCheckInterval);
+    healthCheckInterval = setInterval(cargarPedidos, 30000);
   }
 
   function mostrarLogin() {
+    clearInterval(healthCheckInterval);
+    healthCheckInterval = null;
     $('authSection').style.display = 'block';
     $('dashboardSection').style.display = 'none';
     $('sessionBar').style.display = 'none';
@@ -168,6 +173,8 @@
   /* ------------------- CARGA DE DATOS ------------------- */
   async function cargarPedidos() {
     $('syncStatus').textContent = 'Sincronizando...';
+    $('syncStatus').classList.remove('is-online', 'is-offline');
+    $('syncStatus').setAttribute('role', 'status');
 
     let serverOrders = [];
     let serverStorage = null;
@@ -236,8 +243,14 @@
     $('btnDownloadBatchPdf').disabled = orders.length === 0;
     $('btnExportCsv').disabled = orders.length === 0;
 
-    const ahora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    $('syncStatus').textContent = `Actualizado a las ${ahora}`;
+    if (serverOk) {
+      const ahora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      $('syncStatus').textContent = `Servidor conectado · actualizado a las ${ahora}`;
+      $('syncStatus').classList.add('is-online');
+    } else {
+      $('syncStatus').textContent = 'Servidor desconectado · mostrando datos locales';
+      $('syncStatus').classList.add('is-offline');
+    }
     renderTabla();
   }
 

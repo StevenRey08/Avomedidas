@@ -384,6 +384,15 @@ button:disabled {
   font-weight: 500;
 }
 
+.sync-indicator.is-online {
+  color: #256b36;
+}
+
+.sync-indicator.is-offline {
+  color: #b42318;
+  font-weight: 700;
+}
+
 .table-scroll-wrapper {
   overflow-x: auto;
   border: 1px solid var(--line);
