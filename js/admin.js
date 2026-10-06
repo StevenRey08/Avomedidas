@@ -1144,7 +1144,9 @@
       if (o.foto_cliente) {
         doc.setFontSize(11);
         doc.text('Foto del Cliente', 15, yAnexo);
-        doc.addImage(o.foto_cliente, 'JPEG', 15, yAnexo + 5, 80, 80, undefined, 'FAST');
+        try {
+          doc.addImage(o.foto_cliente, 'JPEG', 15, yAnexo + 5, 80, 80);
+        } catch (e) { console.warn('Error jsPDF foto cliente:', e); }
         yAnexo += 95;
       }
       
@@ -1155,7 +1157,9 @@
         }
         doc.setFontSize(11);
         doc.text('Foto de la Tela', 15, yAnexo);
-        doc.addImage(o.foto_tela, 'JPEG', 15, yAnexo + 5, 80, 80, undefined, 'FAST');
+        try {
+          doc.addImage(o.foto_tela, 'JPEG', 15, yAnexo + 5, 80, 80);
+        } catch (e) { console.warn('Error jsPDF foto tela:', e); }
       }
     }
   }
