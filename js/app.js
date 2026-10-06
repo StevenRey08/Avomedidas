@@ -382,15 +382,13 @@
 
     // Tabla de Medidas a la derecha
     let yTable = y;
-    const medidas = [
-      ['Hombros (espalda)', `${o.hombros} in`],
-      ['Pecho (contorno busto)', `${o.pecho} in`],
-      ['Cintura (contorno)', `${o.cintura} in`],
-      ['Cadera (contorno)', `${o.cadera} in`],
-      ['Largo de Manga', `${o.manga} in`],
-    ];
+    const medidas = [];
+    if (o.hombros) medidas.push(['Hombros (espalda)', `${o.hombros} in`]);
+    if (o.pecho) medidas.push(['Pecho (contorno busto)', `${o.pecho} in`]);
+    if (o.cintura) medidas.push(['Cintura (contorno)', `${o.cintura} in`]);
+    if (o.manga) medidas.push(['Largo de Manga', `${o.manga} in`]);
 
-    if (o.cadera_pantalon) medidas.push(['Cadera Pantalón', `${o.cadera_pantalon} in`]);
+    if (o.cintura_pantalon) medidas.push(['Cintura Pantalón', `${o.cintura_pantalon} in`]);
     if (o.largo_pantalon) medidas.push(['Largo Pantalón', `${o.largo_pantalon} in`]);
     if (o.hombro_cuello) medidas.push(['Hombro Cuello', `${o.hombro_cuello} in`]);
     if (o.torso) medidas.push(['Torso (Cuello a Cint.)', `${o.torso} in`]);
