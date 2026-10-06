@@ -458,7 +458,7 @@
   const CLOUD_API_URL = 'https://avomedidas.vercel.app';
 
   function getApiBase() {
-    if (window.location.hostname.endsWith('vercel.app')) {
+    if (window.location.hostname.endsWith('vercel.app') || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       return '';
     }
     return CLOUD_API_URL;

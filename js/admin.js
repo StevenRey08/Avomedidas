@@ -1147,11 +1147,10 @@
         o.cantidad,
         o.talla,
         o.tallaSugerida || '-',
-        `${o.pecho}`,
-        `${o.cintura}`,
-        `${o.cadera}`,
-        `${o.hombros}`,
-        `${o.manga}`,
+        `${o.pecho || ''}`,
+        `${o.cintura || ''}`,
+        `${o.hombros || ''}`,
+        `${o.manga || ''}`,
       ];
 
       cols.forEach((c, j) => doc.text(String(fila[j]), c[1], y));
