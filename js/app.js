@@ -333,6 +333,11 @@
       ['Largo de Manga', `${o.manga} in`],
     ];
 
+    if (o.cadera_pantalon) medidas.push(['Cadera Pantalón', `${o.cadera_pantalon} in`]);
+    if (o.largo_pantalon) medidas.push(['Largo Pantalón', `${o.largo_pantalon} in`]);
+    if (o.hombro_cuello) medidas.push(['Hombro Cuello', `${o.hombro_cuello} in`]);
+    if (o.torso) medidas.push(['Torso (Cuello a Cint.)', `${o.torso} in`]);
+
     medidas.forEach((r, i) => {
       if (i % 2 === 0) {
         doc.setFillColor.apply(doc, COLOR_LIGHT);
@@ -514,7 +519,7 @@
   }
 
   $('guardar').addEventListener('click', async function () {
-    const campos = ['nombre', 'cantidad', 'talla', 'pecho', 'cintura', 'cadera', 'hombros', 'manga', 'notas'];
+    const campos = ['nombre', 'cantidad', 'talla', 'pecho', 'cintura', 'cadera', 'hombros', 'manga', 'cadera_pantalon', 'largo_pantalon', 'hombro_cuello', 'torso', 'notas'];
     const v = {};
     campos.forEach((k) => {
       const el = $(k);
@@ -563,6 +568,10 @@
       cadera: +v.cadera,
       hombros: +v.hombros,
       manga: +v.manga,
+      cadera_pantalon: v.cadera_pantalon ? +v.cadera_pantalon : null,
+      largo_pantalon: v.largo_pantalon ? +v.largo_pantalon : null,
+      hombro_cuello: v.hombro_cuello ? +v.hombro_cuello : null,
+      torso: v.torso ? +v.torso : null,
       notas: v.notas,
     };
 
@@ -586,7 +595,7 @@
       ok.hidden = false;
 
       // Limpiar formulario excepto cantidad por defecto
-      ['nombre', 'talla', 'pecho', 'cintura', 'cadera', 'hombros', 'manga', 'notas'].forEach((k) => {
+      ['nombre', 'talla', 'pecho', 'cintura', 'cadera', 'hombros', 'manga', 'cadera_pantalon', 'largo_pantalon', 'hombro_cuello', 'torso', 'notas'].forEach((k) => {
         if ($(k)) $(k).value = '';
       });
       $('cantidad').value = 1;

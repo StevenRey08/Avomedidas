@@ -527,6 +527,8 @@
           <span>Pecho:</span> ${o.pecho}" · <span>Cint:</span> ${o.cintura}"<br>
           <span>Cadera:</span> ${o.cadera}" · <span>Homb:</span> ${o.hombros}"<br>
           <span>Manga:</span> ${o.manga}"
+          ${o.cadera_pantalon || o.largo_pantalon ? `<br><span>Cad.Pant:</span> ${o.cadera_pantalon||'-'}" · <span>Larg.Pant:</span> ${o.largo_pantalon||'-'}"` : ''}
+          ${o.hombro_cuello || o.torso ? `<br><span>H.Cuello:</span> ${o.hombro_cuello||'-'}" · <span>Torso:</span> ${o.torso||'-'}"` : ''}
         </td>
         <td class="notes-text" title="${escapeHTML(o.notas || 'Sin notas especiales')}">
           ${escapeHTML(o.notas || '—')}
@@ -650,6 +652,10 @@
     $('editCadera').value = order.cadera || '';
     $('editHombros').value = order.hombros || '';
     $('editManga').value = order.manga || '';
+    $('editCaderaPantalon').value = order.cadera_pantalon || '';
+    $('editLargoPantalon').value = order.largo_pantalon || '';
+    $('editHombroCuello').value = order.hombro_cuello || '';
+    $('editTorso').value = order.torso || '';
     $('editNotas').value = order.notas || '';
     $('editModal').style.display = 'flex';
     $('editNombre').focus();
@@ -680,6 +686,10 @@
       cadera: parseFloat($('editCadera').value),
       hombros: parseFloat($('editHombros').value),
       manga: parseFloat($('editManga').value),
+      cadera_pantalon: $('editCaderaPantalon').value ? parseFloat($('editCaderaPantalon').value) : null,
+      largo_pantalon: $('editLargoPantalon').value ? parseFloat($('editLargoPantalon').value) : null,
+      hombro_cuello: $('editHombroCuello').value ? parseFloat($('editHombroCuello').value) : null,
+      torso: $('editTorso').value ? parseFloat($('editTorso').value) : null,
       notas: $('editNotas').value.trim(),
     };
 
@@ -959,6 +969,11 @@
       ['Largo de Manga', `${o.manga} in`],
     ];
 
+    if (o.cadera_pantalon) medidas.push(['Cadera Pantalón', `${o.cadera_pantalon} in`]);
+    if (o.largo_pantalon) medidas.push(['Largo Pantalón', `${o.largo_pantalon} in`]);
+    if (o.hombro_cuello) medidas.push(['Hombro Cuello', `${o.hombro_cuello} in`]);
+    if (o.torso) medidas.push(['Torso (Cuello a Cint.)', `${o.torso} in`]);
+
     medidas.forEach((r, i) => {
       if (i % 2 === 0) {
         doc.setFillColor.apply(doc, COLOR_LIGHT);
@@ -1142,6 +1157,10 @@
       'Cadera (in)',
       'Hombros (in)',
       'Largo Manga (in)',
+      'Cadera Pantalón (in)',
+      'Largo Pantalón (in)',
+      'Hombro Cuello (in)',
+      'Torso (in)',
       'Notas',
     ];
 
@@ -1157,6 +1176,10 @@
       o.cadera,
       o.hombros,
       o.manga,
+      o.cadera_pantalon || '',
+      o.largo_pantalon || '',
+      o.hombro_cuello || '',
+      o.torso || '',
       `"${(o.notas || '').replace(/"/g, '""')}"`,
     ]);
 

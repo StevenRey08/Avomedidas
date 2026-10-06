@@ -150,6 +150,10 @@ export default async function handler(req, res) {
       const cadera = parseFloat(body.cadera);
       const hombros = parseFloat(body.hombros);
       const manga = parseFloat(body.manga);
+      const cadera_pantalon = body.cadera_pantalon ? parseFloat(body.cadera_pantalon) : null;
+      const largo_pantalon = body.largo_pantalon ? parseFloat(body.largo_pantalon) : null;
+      const hombro_cuello = body.hombro_cuello ? parseFloat(body.hombro_cuello) : null;
+      const torso = body.torso ? parseFloat(body.torso) : null;
 
       // Validaciones
       if (!nombre) {
@@ -198,6 +202,10 @@ export default async function handler(req, res) {
         cadera,
         hombros,
         manga,
+        cadera_pantalon,
+        largo_pantalon,
+        hombro_cuello,
+        torso,
         notas: (body.notas || '').trim(),
       };
 
