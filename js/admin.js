@@ -533,7 +533,13 @@
         </td>
         <td class="notes-text" title="${escapeHTML(o.notas || 'Sin notas especiales')}">
           ${escapeHTML(o.notas || '—')}
-          ${o.foto_cliente || o.foto_tela ? '<br><small>📸 Fotos adjuntas</small>' : ''}
+          ${(o.foto_cliente || o.foto_tela) ? `
+            <div style="display:flex; align-items:center; gap:6px; margin-top:6px; flex-wrap:wrap;">
+              ${o.foto_cliente ? `<img src="${o.foto_cliente}" title="Foto del Cliente (clic para ver)" style="width:30px; height:30px; object-fit:cover; border-radius:4px; border:1px solid #1f4a22; cursor:pointer;" onclick="window.verFotoTaller('${escapeHTML(o.foto_cliente)}')">` : ''}
+              ${o.foto_tela ? `<img src="${o.foto_tela}" title="Foto de la Tela (clic para ver)" style="width:30px; height:30px; object-fit:cover; border-radius:4px; border:1px solid #1f4a22; cursor:pointer;" onclick="window.verFotoTaller('${escapeHTML(o.foto_tela)}')">` : ''}
+              <span style="font-size:10.5px; font-weight:700; color:#1f4a22;">${(o.foto_cliente && o.foto_tela) ? '📸 2 fotos' : '📸 1 foto'}</span>
+            </div>
+          ` : ''}
         </td>
         <td class="actions-group">
           <button type="button" class="btn-action btn-edit" data-action="edit" data-id="${escapeHTML(o.id)}" title="Editar medidas o datos del pedido">
@@ -1001,6 +1007,116 @@
     });
   }
 
+  window.verFotoTaller = function (src) {
+    if (!src) return;
+    const w = window.open('', '_blank');
+    if (w) {
+      w.document.write(`
+        <!DOCTYPE html>
+        <html><head><title>Visualizador de Foto · Avocat</title></head>
+        <body style="margin:0; background:#0d150e; display:flex; align-items:center; justify-content:center; min-height:100vh; font-family:sans-serif;">
+          <div style="text-align:center; padding:16px;">
+            <img src="${src}" style="max-width:92vw; max-height:88vh; object-fit:contain; border-radius:8px; box-shadow:0 12px 40px rgba(0,0,0,0.8); border:1px solid #2d6a30;">
+            <p style="color:#a7f3d0; margin-top:12px; font-size:13px; font-weight:bold;">Avocat Confecciones · Fotografía de Pedido</p>
+          </div>
+        </body></html>
+      `);
+      w.document.close();
+    }
+  };
+
+  function prepararCanvasImagen(dataUrl, maxW = 900, maxH = 900) {
+    return new Promise((resolve) => {
+      if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image')) {
+        return resolve(null);
+      }
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          let w = img.naturalWidth || img.width || 400;
+          let h = img.naturalHeight || img.height || 400;
+          if (w > maxW || h > maxH) {
+            const scale = Math.min(maxW / w, maxH / h);
+            w = Math.round(w * scale);
+            h = Math.round(h * scale);
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve({ canvas, width: w, height: h });
+        } catch (err) {
+          console.warn('Error dibujando canvas de imagen para PDF:', err);
+          resolve(null);
+        }
+      };
+      img.onerror = (err) => {
+        console.warn('Error cargando Image desde dataUrl:', err);
+        resolve(null);
+      };
+      img.src = dataUrl;
+    });
+  }
+
+  function dibujarFotoEnPDF(doc, item, x, y, cardW, cardH, titulo, subtitulo) {
+    if (!item || !item.canvas) return;
+
+    // Fondo y borde de la tarjeta completa
+    doc.setFillColor(252, 254, 250);
+    doc.roundedRect(x, y, cardW, cardH, 3, 3, 'F');
+    doc.setDrawColor.apply(doc, COLOR_GREEN);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(x, y, cardW, cardH, 3, 3, 'D');
+
+    // Barra superior verde
+    doc.setFillColor.apply(doc, COLOR_GREEN);
+    doc.roundedRect(x, y, cardW, 8.5, 3, 3, 'F');
+    doc.rect(x, y + 4.5, cardW, 4, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.setTextColor(255, 255, 255);
+    doc.text(titulo, x + cardW / 2, y + 6, { align: 'center' });
+
+    // Dimensiones disponibles para la imagen
+    const pad = 4;
+    const maxImgW = cardW - (pad * 2);
+    const maxImgH = cardH - 18 - (pad * 2);
+
+    const ratio = Math.min(maxImgW / item.width, maxImgH / item.height);
+    const drawW = item.width * ratio;
+    const drawH = item.height * ratio;
+    const drawX = x + pad + (maxImgW - drawW) / 2;
+    const drawY = y + 10 + pad + (maxImgH - drawH) / 2;
+
+    // Fondo blanco y borde sutil
+    doc.setFillColor(255, 255, 255);
+    doc.rect(x + pad, y + 10, maxImgW, maxImgH + pad, 'F');
+    doc.setDrawColor(215, 228, 215);
+    doc.setLineWidth(0.25);
+    doc.rect(x + pad, y + 10, maxImgW, maxImgH + pad, 'D');
+
+    try {
+      doc.addImage(item.canvas, 'JPEG', drawX, drawY, drawW, drawH);
+    } catch (e) {
+      try {
+        doc.addImage(item.canvas.toDataURL('image/jpeg', 0.9), 'JPEG', drawX, drawY, drawW, drawH);
+      } catch (e2) {
+        console.error('Error insertando imagen en PDF:', e2);
+      }
+    }
+
+    if (subtitulo) {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(7.8);
+      doc.setTextColor(80, 105, 80);
+      doc.text(subtitulo, x + cardW / 2, y + cardH - 3.5, { align: 'center' });
+    }
+  }
+
   async function generarHojaInforme(doc, o) {
     agregarCabecera(doc, 'Informe de Confeccion');
 
@@ -1128,39 +1244,67 @@
     doc.text('[  ] Patron y medidas verificados     [  ] Corte de tela     [  ] Armado y prueba     [  ] Acabado y planchado', 20, yControl + 13);
     doc.text('Firma de Confeccionista: ____________________________        Fecha de entrega: _____ / _____ / _________', 20, yControl + 22);
 
+    // --- PROCESAMIENTO ROBUSTO DE FOTOGRAFÍAS ---
+    const fotoClienteObj = await prepararCanvasImagen(o.foto_cliente);
+    const fotoTelaObj = await prepararCanvasImagen(o.foto_tela);
+    const tieneFotos = Boolean(fotoClienteObj || fotoTelaObj);
+
     doc.setFontSize(8);
     doc.setTextColor(130, 150, 130);
-    doc.text('Avocat Confecciones · Ficha Tecnica Oficial de Taller', 105, 290, { align: 'center' });
+    if (tieneFotos) {
+      doc.text('Avocat Confecciones · Ficha Tecnica Oficial de Taller · Página 1 de 2', 105, 290, { align: 'center' });
 
-    // --- SECCIÓN ANEXOS FOTOGRÁFICOS ---
-    if (o.foto_cliente || o.foto_tela) {
-      doc.addPage();
+      // Aviso destacado en la primera hoja
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
+      doc.setFontSize(8.5);
       doc.setTextColor.apply(doc, COLOR_GREEN);
-      doc.text('Anexos Fotográficos', 15, 20);
-      
-      let yAnexo = 30;
-      if (o.foto_cliente) {
-        doc.setFontSize(11);
-        doc.text('Foto del Cliente', 15, yAnexo);
-        try {
-          doc.addImage(o.foto_cliente, 'JPEG', 15, yAnexo + 5, 80, 80);
-        } catch (e) { console.warn('Error jsPDF foto cliente:', e); }
-        yAnexo += 95;
+      doc.text('📸 Incluye Anexo Fotográfico en la Página 2', 125, yTela + 5);
+    } else {
+      doc.text('Avocat Confecciones · Ficha Tecnica Oficial de Taller', 105, 290, { align: 'center' });
+    }
+
+    // --- SECCIÓN ANEXOS FOTOGRÁFICOS (PÁGINA 2) ---
+    if (tieneFotos) {
+      doc.addPage();
+      agregarCabecera(doc, 'Anexo Fotográfico de Confección');
+
+      // Barra identificadora del pedido
+      doc.setFillColor.apply(doc, COLOR_LIGHT);
+      doc.roundedRect(15, 38, 180, 11, 2, 2, 'F');
+      doc.setDrawColor.apply(doc, COLOR_GREEN);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(15, 38, 180, 11, 2, 2, 'D');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor.apply(doc, COLOR_GREEN);
+      doc.text(`Cliente: ${(o.nombre || '-').slice(0, 30)}`, 19, 45);
+      doc.text(`Pedido: ${o.id || '-'}`, 90, 45);
+      doc.text(`Talla: ${o.talla || o.talla_pantalon || '-'}`, 155, 45);
+
+      const yCards = 53;
+      const cardHeight = 222;
+
+      if (fotoClienteObj && fotoTelaObj) {
+        // Ambas fotos en paralelo
+        const cardW = 87;
+        dibujarFotoEnPDF(doc, fotoClienteObj, 15, yCards, cardW, cardHeight, 'Foto del Cliente / Modelo', 'Referencia anatómica, postura y contextura');
+        dibujarFotoEnPDF(doc, fotoTelaObj, 108, yCards, cardW, cardHeight, 'Foto de la Tela / Muestra', 'Referencia de tono, textura y caída textil');
+      } else if (fotoClienteObj) {
+        // Solo foto del cliente: centrada y destacada
+        const cardW = 140;
+        dibujarFotoEnPDF(doc, fotoClienteObj, 35, yCards, cardW, cardHeight, 'Foto del Cliente / Modelo', 'Referencia anatómica, postura y contextura del cliente');
+      } else if (fotoTelaObj) {
+        // Solo foto de la tela: centrada y destacada
+        const cardW = 140;
+        dibujarFotoEnPDF(doc, fotoTelaObj, 35, yCards, cardW, cardHeight, 'Foto de la Tela / Muestra', 'Referencia de tono, textura y caída textil seleccionada');
       }
-      
-      if (o.foto_tela) {
-        if (yAnexo > 200) {
-           doc.addPage();
-           yAnexo = 20;
-        }
-        doc.setFontSize(11);
-        doc.text('Foto de la Tela', 15, yAnexo);
-        try {
-          doc.addImage(o.foto_tela, 'JPEG', 15, yAnexo + 5, 80, 80);
-        } catch (e) { console.warn('Error jsPDF foto tela:', e); }
-      }
+
+      // Pie de página de la hoja 2
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(130, 150, 130);
+      doc.text('Avocat Confecciones · Ficha Técnica Oficial de Taller · Página 2 de 2', 105, 290, { align: 'center' });
     }
   }
 

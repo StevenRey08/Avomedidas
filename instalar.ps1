@@ -26,8 +26,10 @@ New-Item -ItemType Directory -Path (Join-Path $targetDir "assets") -Force | Out-
 
 Write-Host " [2/5] Copiando archivos de la aplicacion..." -ForegroundColor Cyan
 Copy-Item (Join-Path $sourceDir "admin.html") -Destination (Join-Path $targetDir "admin.html") -Force
+Copy-Item (Join-Path $sourceDir "index.html") -Destination (Join-Path $targetDir "index.html") -Force
 Copy-Item (Join-Path $sourceDir "css\admin.css") -Destination (Join-Path $targetDir "css\admin.css") -Force
 Copy-Item (Join-Path $sourceDir "js\admin.js") -Destination (Join-Path $targetDir "js\admin.js") -Force
+Copy-Item (Join-Path $sourceDir "js\app.js") -Destination (Join-Path $targetDir "js\app.js") -Force
 
 $jspdf = Join-Path $sourceDir "js\jspdf.umd.min.js"
 if (Test-Path $jspdf) {
