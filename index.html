@@ -1,16 +1,20 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="utf-8">
   <meta name="color-scheme" content="light">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Avocat · Tallas y medidas</title>
-  <meta name="description" content="Calcula tu talla exacta y envía tus medidas corporales directamente al taller de confección Avocat con guardado seguro en Redis.">
+  <meta name="description"
+    content="Calcula tu talla exacta y envía tus medidas corporales directamente al taller de confección Avocat con guardado seguro en Redis.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Figtree:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="./css/styles.css">
 </head>
+
 <body>
   <!-- Cinta métrica decorativa superior -->
   <div class="tape" aria-hidden="true"></div>
@@ -19,7 +23,10 @@
     <header class="app-header">
       <img class="logo" alt="Logo de Avocat pour les hommes" src="./assets/Logo.jpg">
       <h1>Tus medidas, tu talla</h1>
-      <p class="lead">Completa tus datos y medidas en pulgadas. Guardamos tu ficha en tiempo real en nuestra base de datos para confeccionar la prenda en la talla perfecta.</p>
+      <p class="lead">Completa tus datos y medidas en pulgadas. Guardamos tu ficha en tiempo real en nuest3
+
+        ra base de
+        datos para confeccionar la prenda en la talla perfecta.</p>
 
     </header>
 
@@ -33,90 +40,92 @@
         <!-- Silueta Interactiva -->
         <aside class="fig">
           <svg viewBox="0 0 200 410" role="img" aria-label="Silueta femenina que marca la zona que estás midiendo">
-            <circle class="body" cx="100" cy="38" r="22"/>
-            <path class="body" d="M92 58h16v16H92z"/>
-            <path id="arm" class="body" d="M54 88Q44 92 44 104L34 200Q34 206 40 206L48 206Q52 204 52 198L62 120Z"/>
-            <path class="body" transform="translate(200,0) scale(-1,1)" d="M54 88Q44 92 44 104L34 200Q34 206 40 206L48 206Q52 204 52 198L62 120Z"/>
-            <path class="body" d="M92 74L56 86Q50 90 54 100L68 118Q62 138 70 150Q80 170 78 188Q60 215 60 240L68 300L76 352L84 400L97 400L100 268L103 400L116 400L124 352L132 300L140 240Q140 215 122 188Q120 170 130 150Q138 138 132 118L146 100Q150 90 144 86L108 74Z"/>
+            <circle class="body" cx="100" cy="38" r="22" />
+            <path class="body" d="M92 58h16v16H92z" />
+            <path id="arm" class="body" d="M54 88Q44 92 44 104L34 200Q34 206 40 206L48 206Q52 204 52 198L62 120Z" />
+            <path class="body" transform="translate(200,0) scale(-1,1)"
+              d="M54 88Q44 92 44 104L34 200Q34 206 40 206L48 206Q52 204 52 198L62 120Z" />
+            <path class="body"
+              d="M92 74L56 86Q50 90 54 100L68 118Q62 138 70 150Q80 170 78 188Q60 215 60 240L68 300L76 352L84 400L97 400L100 268L103 400L116 400L124 352L132 300L140 240Q140 215 122 188Q120 170 130 150Q138 138 132 118L146 100Q150 90 144 86L108 74Z" />
 
             <!-- Zonas interactivas con halos y líneas -->
             <g class="zone" data-k="hombros" tabindex="0" role="button" aria-label="Medir hombros">
-              <line class="hit" x1="54" y1="86" x2="146" y2="86"/>
-              <line class="halo" x1="54" y1="86" x2="146" y2="86"/>
-              <line class="core" x1="54" y1="86" x2="146" y2="86"/>
-              <circle cx="54" cy="86" r="4"/>
-              <circle cx="146" cy="86" r="4"/>
+              <line class="hit" x1="54" y1="86" x2="146" y2="86" />
+              <line class="halo" x1="54" y1="86" x2="146" y2="86" />
+              <line class="core" x1="54" y1="86" x2="146" y2="86" />
+              <circle cx="54" cy="86" r="4" />
+              <circle cx="146" cy="86" r="4" />
             </g>
 
             <g class="zone" data-k="pecho" tabindex="0" role="button" aria-label="Medir pecho">
-              <line class="hit" x1="64" y1="138" x2="136" y2="138"/>
-              <line class="halo" x1="64" y1="138" x2="136" y2="138"/>
-              <line class="core" x1="64" y1="138" x2="136" y2="138"/>
-              <circle cx="64" cy="138" r="4"/>
-              <circle cx="136" cy="138" r="4"/>
+              <line class="hit" x1="64" y1="138" x2="136" y2="138" />
+              <line class="halo" x1="64" y1="138" x2="136" y2="138" />
+              <line class="core" x1="64" y1="138" x2="136" y2="138" />
+              <circle cx="64" cy="138" r="4" />
+              <circle cx="136" cy="138" r="4" />
             </g>
 
             <g class="zone" data-k="cintura" tabindex="0" role="button" aria-label="Medir cintura">
-              <line class="hit" x1="76" y1="186" x2="124" y2="186"/>
-              <line class="halo" x1="76" y1="186" x2="124" y2="186"/>
-              <line class="core" x1="76" y1="186" x2="124" y2="186"/>
-              <circle cx="76" cy="186" r="4"/>
-              <circle cx="124" cy="186" r="4"/>
+              <line class="hit" x1="76" y1="186" x2="124" y2="186" />
+              <line class="halo" x1="76" y1="186" x2="124" y2="186" />
+              <line class="core" x1="76" y1="186" x2="124" y2="186" />
+              <circle cx="76" cy="186" r="4" />
+              <circle cx="124" cy="186" r="4" />
             </g>
 
             <g class="zone" data-k="manga" tabindex="0" role="button" aria-label="Medir largo de manga">
-              <line class="hit" x1="52" y1="94" x2="41" y2="200"/>
-              <line class="halo" x1="52" y1="94" x2="41" y2="200"/>
-              <line class="core" x1="52" y1="94" x2="41" y2="200"/>
-              <line class="hit" x1="148" y1="94" x2="159" y2="200"/>
-              <line class="halo" x1="148" y1="94" x2="159" y2="200"/>
-              <line class="core" x1="148" y1="94" x2="159" y2="200"/>
-              <circle cx="52" cy="94" r="4"/>
-              <circle cx="41" cy="200" r="4"/>
-              <circle cx="148" cy="94" r="4"/>
-              <circle cx="159" cy="200" r="4"/>
+              <line class="hit" x1="52" y1="94" x2="41" y2="200" />
+              <line class="halo" x1="52" y1="94" x2="41" y2="200" />
+              <line class="core" x1="52" y1="94" x2="41" y2="200" />
+              <line class="hit" x1="148" y1="94" x2="159" y2="200" />
+              <line class="halo" x1="148" y1="94" x2="159" y2="200" />
+              <line class="core" x1="148" y1="94" x2="159" y2="200" />
+              <circle cx="52" cy="94" r="4" />
+              <circle cx="41" cy="200" r="4" />
+              <circle cx="148" cy="94" r="4" />
+              <circle cx="159" cy="200" r="4" />
             </g>
 
             <g class="zone" data-k="cintura_pantalon" tabindex="0" role="button" aria-label="Medir cintura pantalón">
-              <line class="hit" x1="63" y1="260" x2="137" y2="260"/>
-              <line class="halo" x1="63" y1="260" x2="137" y2="260"/>
-              <line class="core" x1="63" y1="260" x2="137" y2="260"/>
-              <circle cx="63" cy="260" r="4"/>
-              <circle cx="137" cy="260" r="4"/>
+              <line class="hit" x1="63" y1="260" x2="137" y2="260" />
+              <line class="halo" x1="63" y1="260" x2="137" y2="260" />
+              <line class="core" x1="63" y1="260" x2="137" y2="260" />
+              <circle cx="63" cy="260" r="4" />
+              <circle cx="137" cy="260" r="4" />
             </g>
 
             <g class="zone" data-k="largo_pantalon" tabindex="0" role="button" aria-label="Medir largo de pantalón">
-              <line class="hit" x1="84" y1="186" x2="84" y2="380"/>
-              <line class="halo" x1="84" y1="186" x2="84" y2="380"/>
-              <line class="core" x1="84" y1="186" x2="84" y2="380"/>
-              <line class="hit" x1="116" y1="186" x2="116" y2="380"/>
-              <line class="halo" x1="116" y1="186" x2="116" y2="380"/>
-              <line class="core" x1="116" y1="186" x2="116" y2="380"/>
-              <circle cx="84" cy="186" r="4"/>
-              <circle cx="84" cy="380" r="4"/>
-              <circle cx="116" cy="186" r="4"/>
-              <circle cx="116" cy="380" r="4"/>
+              <line class="hit" x1="84" y1="186" x2="84" y2="380" />
+              <line class="halo" x1="84" y1="186" x2="84" y2="380" />
+              <line class="core" x1="84" y1="186" x2="84" y2="380" />
+              <line class="hit" x1="116" y1="186" x2="116" y2="380" />
+              <line class="halo" x1="116" y1="186" x2="116" y2="380" />
+              <line class="core" x1="116" y1="186" x2="116" y2="380" />
+              <circle cx="84" cy="186" r="4" />
+              <circle cx="84" cy="380" r="4" />
+              <circle cx="116" cy="186" r="4" />
+              <circle cx="116" cy="380" r="4" />
             </g>
 
             <g class="zone" data-k="hombro_cuello" tabindex="0" role="button" aria-label="Medir hombro a cuello">
-              <line class="hit" x1="90" y1="74" x2="60" y2="86"/>
-              <line class="halo" x1="90" y1="74" x2="60" y2="86"/>
-              <line class="core" x1="90" y1="74" x2="60" y2="86"/>
-              <line class="hit" x1="110" y1="74" x2="140" y2="86"/>
-              <line class="halo" x1="110" y1="74" x2="140" y2="86"/>
-              <line class="core" x1="110" y1="74" x2="140" y2="86"/>
-              <circle cx="90" cy="74" r="4"/>
-              <circle cx="60" cy="86" r="4"/>
-              <circle cx="110" cy="74" r="4"/>
-              <circle cx="140" cy="86" r="4"/>
+              <line class="hit" x1="90" y1="74" x2="60" y2="86" />
+              <line class="halo" x1="90" y1="74" x2="60" y2="86" />
+              <line class="core" x1="90" y1="74" x2="60" y2="86" />
+              <line class="hit" x1="110" y1="74" x2="140" y2="86" />
+              <line class="halo" x1="110" y1="74" x2="140" y2="86" />
+              <line class="core" x1="110" y1="74" x2="140" y2="86" />
+              <circle cx="90" cy="74" r="4" />
+              <circle cx="60" cy="86" r="4" />
+              <circle cx="110" cy="74" r="4" />
+              <circle cx="140" cy="86" r="4" />
             </g>
 
             <g class="zone" data-k="torso" tabindex="0" role="button" aria-label="Medir torso">
-              <line class="hit" x1="100" y1="74" x2="100" y2="186"/>
-              <line class="halo" x1="100" y1="74" x2="100" y2="186"/>
-              <line class="core" x1="100" y1="74" x2="100" y2="186"/>
-              <circle cx="100" cy="74" r="4"/>
-              <circle cx="100" cy="186" r="4"/>
+              <line class="hit" x1="100" y1="74" x2="100" y2="186" />
+              <line class="halo" x1="100" y1="74" x2="100" y2="186" />
+              <line class="core" x1="100" y1="74" x2="100" y2="186" />
+              <circle cx="100" cy="74" r="4" />
+              <circle cx="100" cy="186" r="4" />
             </g>
           </svg>
           <div class="cap" id="cap" aria-live="polite">Toca un campo o silueta para ver dónde medir.</div>
@@ -131,14 +140,16 @@
               </label>
 
               <label>Cantidad de prendas
-                <input id="cantidad" name="cantidad" type="number" min="1" max="50" value="1" inputmode="numeric" required>
+                <input id="cantidad" name="cantidad" type="number" min="1" max="50" value="1" inputmode="numeric"
+                  required>
               </label>
 
               <label>Tipo de Prenda
                 <select id="tipo_prenda" name="tipo_prenda" class="highlight-select" required>
                   <option value="ambos">Camisa y Pantalón</option>
                   <option value="camisa">Solo Camisa</option>
-                  <option value="pantalon">Solo Pantalón</option>
+                  <option value="pantalon">Solo Panta
+                    lón</option>
                 </select>
               </label>
 
@@ -167,48 +178,124 @@
               </label>
 
               <label class="group-camisa">Pecho<small>Alrededor de la parte más ancha</small>
-                <input id="pecho" name="pecho" type="number" min="20" max="80" step="0.25" inputmode="decimal" placeholder="pulgadas">
+                <input id="pecho" name="pecho" type="number" min="20" max="80" step="0.25" inputmode="decimal"
+                  placeholder="pulgadas">
               </label>
 
               <label class="group-camisa">Cintura<small>Alrededor de la parte más estrecha</small>
-                <input id="cintura" name="cintura" type="number" min="15" max="75" step="0.25" inputmode="decimal" placeholder="pulgadas">
+                <input id="cintura" name="cintura" type="number" min="15" max="75" step="0.25" inputmode="decimal"
+                  placeholder="pulgadas">
               </label>
 
               <label class="group-camisa">Hombros<small>De un hombro al otro, por la espalda</small>
-                <input id="hombros" name="hombros" type="number" min="10" max="35" step="0.25" inputmode="decimal" placeholder="pulgadas">
+                <input id="hombros" name="hombros" type="number" min="10" max="35" step="0.25" inputmode="decimal"
+                  placeholder="pulgadas">
               </label>
 
               <label class="group-camisa">Largo de manga<small>Del hombro a la muñeca</small>
-                <input id="manga" name="manga" type="number" min="12" max="45" step="0.25" inputmode="decimal" placeholder="pulgadas">
+                <input id="manga" name="manga" type="number" min="12" max="45" step="0.25" inputmode="decimal"
+                  placeholder="pulgadas">
               </label>
 
               <label class="group-camisa">Hombro Cuello<small>Del cuello al hombro</small>
-                <input id="hombro_cuello" name="hombro_cuello" type="number" min="3" max="15" step="0.25" inputmode="decimal" placeholder="pulgadas">
+                <input id="hombro_cuello" name="hombro_cuello" type="number" min="3" max="15" step="0.25"
+                  inputmode="decimal" placeholder="pulgadas">
               </label>
 
               <label class="group-camisa">Torso<small>Del cuello a la cintura</small>
-                <input id="torso" name="torso" type="number" min="10" max="35" step="0.25" inputmode="decimal" placeholder="pulgadas">
+                <input id="torso" name="torso" type="number" min="10" max="35" step="0.25" inputmode="decimal"
+                  placeholder="pulgadas">
               </label>
 
               <label class="group-pantalon">Cintura Pantalón<small>Contorno para el pantalón</small>
-                <input id="cintura_pantalon" name="cintura_pantalon" type="number" min="20" max="85" step="0.25" inputmode="decimal" placeholder="pulgadas">
+                <input id="cintura_pantalon" name="cintura_pantalon" type="number" min="20" max="85" step="0.25"
+                  inputmode="decimal" placeholder="pulgadas">
               </label>
 
               <label class="group-pantalon">Largo Pantalón<small>De la cintura al tobillo</small>
-                <input id="largo_pantalon" name="largo_pantalon" type="number" min="20" max="60" step="0.25" inputmode="decimal" placeholder="pulgadas">
+                <input id="largo_pantalon" name="largo_pantalon" type="number" min="20" max="60" step="0.25"
+                  inputmode="decimal" placeholder="pulgadas">
               </label>
 
               <label class="wide">Notas para la confección (opcional)
-                <input id="notas" name="notas" placeholder="Ej: Ajuste un poco más holgado en el talle, tela elástica...">
+                <input id="notas" name="notas"
+                  placeholder="Ej: Ajuste un poco más holgado en el talle, tela elástica...">
               </label>
 
-              <label class="wide">Foto del Cliente (Opcional)
-                <input type="file" id="foto_cliente" accept="image/*" capture="environment">
-              </label>
+              <!-- SECCIÓN ELEGANTE DE FOTOGRAFÍAS -->
+              <div class="wide photo-upload-wrapper">
+                <div class="photo-upload-header">
+                  <div class="photo-title-wrap">
+                    <span class="photo-icon-badge">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    </span>
+                    <div>
+                      <h3 class="photo-section-title">Fotos de Referencia <span class="badge-opt">Opcional</span></h3>
+                      <p class="photo-section-desc">Toma una foto al cliente y una de la tela para confeccionar con máxima precisión.</p>
+                    </div>
+                  </div>
+                </div>
 
-              <label class="wide">Foto de la Tela (Opcional)
-                <input type="file" id="foto_tela" accept="image/*" capture="environment">
-              </label>
+                <div class="photo-cards-grid">
+                  <!-- Tarjeta 1: Foto del Cliente -->
+                  <div class="photo-upload-card" id="cardFotoCliente">
+                    <input type="file" id="foto_cliente" accept="image/*" class="hidden-file-input">
+                    <div class="card-empty-state" id="emptyStateCliente">
+                      <div class="icon-circle">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      </div>
+                      <div class="card-text">
+                        <strong class="card-title">Foto del Cliente</strong>
+                        <span class="card-subtitle">Postura o cuerpo completo</span>
+                      </div>
+                      <button type="button" class="btn-upload-photo" id="btnTriggerCliente">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        <span>Tomar / Subir Foto</span>
+                      </button>
+                    </div>
+                    <!-- Estado con Vista Previa -->
+                    <div class="card-preview-state" id="previewStateCliente" style="display:none;">
+                      <div class="preview-img-wrap">
+                        <img id="imgPreviewCliente" src="" alt="Foto del Cliente">
+                        <span class="preview-badge">✓ Cliente listo</span>
+                      </div>
+                      <div class="preview-actions">
+                        <button type="button" class="btn-change-photo" id="btnChangeCliente">Cambiar</button>
+                        <button type="button" class="btn-remove-photo" id="btnRemoveCliente">✕ Quitar</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Tarjeta 2: Foto de la Tela -->
+                  <div class="photo-upload-card" id="cardFotoTela">
+                    <input type="file" id="foto_tela" accept="image/*" class="hidden-file-input">
+                    <div class="card-empty-state" id="emptyStateTela">
+                      <div class="icon-circle">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+                      </div>
+                      <div class="card-text">
+                        <strong class="card-title">Foto de la Tela</strong>
+                        <span class="card-subtitle">Muestra de color o textura</span>
+                      </div>
+                      <button type="button" class="btn-upload-photo" id="btnTriggerTela">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        <span>Tomar / Subir Muestra</span>
+                      </button>
+                    </div>
+                    <!-- Estado con Vista Previa -->
+                    <div class="card-preview-state" id="previewStateTela" style="display:none;">
+                      <div class="preview-img-wrap">
+                        <img id="imgPreviewTela" src="" alt="Foto de la Tela">
+                        <span class="preview-badge">✓ Tela lista</span>
+                      </div>
+                      <div class="preview-actions">
+                        <button type="button" class="btn-change-photo" id="btnChangeTela">Cambiar</button>
+                        <button type="button" class="btn-remove-photo" id="btnRemoveTela">✕ Quitar</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Sugerencia de talla y mensajes -->
@@ -228,7 +315,10 @@
           <div class="sent" id="ok" hidden>
             <div class="sent-header">
               <span class="sent-icon" style="display:inline-flex;align-items:center;justify-content:center;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
               </span>
               <div>
                 <p id="okt">Pedido enviado con éxito y guardado en Redis.</p>
@@ -244,15 +334,13 @@
       </div>
     </section>
 
-    <!-- Pie de página -->
     <footer class="app-footer">
       <p>Avocat Confecciones · Tallas a tu medida con Vercel Serverless & Redis</p>
     </footer>
   </main>
 
-  <!-- jsPDF Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <!-- Lógica de la aplicación -->
-  <script src="./js/app.js?v=3"></script>
+  <script src="./js/app.js?v=4"></script>
 </body>
+
 </html>

@@ -364,240 +364,334 @@
     });
   }
 
-  function dibujarFotoEnPDF(doc, item, x, y, cardW, cardH, titulo, subtitulo) {
+  // --- DIBUJADO DE TARJETA DE FOTOGRAFÍA EN PDF (ALTA COSTURA) ---
+  function dibujarTarjetaFotoPDF(doc, item, x, y, w, h, titulo) {
     if (!item || !item.canvas) return;
 
-    // Fondo y borde de la tarjeta completa
-    doc.setFillColor(252, 254, 250);
-    doc.roundedRect(x, y, cardW, cardH, 3, 3, 'F');
-    doc.setDrawColor.apply(doc, COLOR_GREEN);
-    doc.setLineWidth(0.4);
-    doc.roundedRect(x, y, cardW, cardH, 3, 3, 'D');
+    // Contenedor principal con fondo suave y borde sutil
+    doc.setFillColor(249, 252, 247);
+    doc.roundedRect(x, y, w, h, 2.5, 2.5, 'F');
+    doc.setDrawColor(31, 74, 34);
+    doc.setLineWidth(0.35);
+    doc.roundedRect(x, y, w, h, 2.5, 2.5, 'D');
 
-    // Barra superior verde
-    doc.setFillColor.apply(doc, COLOR_GREEN);
-    doc.roundedRect(x, y, cardW, 8.5, 3, 3, 'F');
-    doc.rect(x, y + 4.5, cardW, 4, 'F');
+    // Banda superior verde esmeralda para el título
+    const headerH = 6.8;
+    doc.setFillColor(31, 74, 34);
+    doc.roundedRect(x, y, w, headerH, 2.5, 2.5, 'F');
+    doc.rect(x, y + headerH - 2.5, w, 2.5, 'F');
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.5);
+    doc.setFontSize(7.2);
     doc.setTextColor(255, 255, 255);
-    doc.text(titulo, x + cardW / 2, y + 6, { align: 'center' });
+    doc.text(titulo, x + w / 2, y + 4.8, { align: 'center' });
 
-    // Dimensiones disponibles para la imagen
-    const pad = 4;
-    const maxImgW = cardW - (pad * 2);
-    const maxImgH = cardH - 18 - (pad * 2);
+    // Área interna para la imagen con preservación exacta de aspecto
+    const pad = 2.5;
+    const viewX = x + pad;
+    const viewY = y + headerH + pad;
+    const viewW = w - pad * 2;
+    const viewH = h - headerH - pad * 2;
 
-    const ratio = Math.min(maxImgW / item.width, maxImgH / item.height);
-    const drawW = item.width * ratio;
-    const drawH = item.height * ratio;
-    const drawX = x + pad + (maxImgW - drawW) / 2;
-    const drawY = y + 10 + pad + (maxImgH - drawH) / 2;
-
-    // Fondo blanco y borde sutil
+    // Fondo blanco del visor de imagen
     doc.setFillColor(255, 255, 255);
-    doc.rect(x + pad, y + 10, maxImgW, maxImgH + pad, 'F');
-    doc.setDrawColor(215, 228, 215);
-    doc.setLineWidth(0.25);
-    doc.rect(x + pad, y + 10, maxImgW, maxImgH + pad, 'D');
+    doc.rect(viewX, viewY, viewW, viewH, 'F');
+    doc.setDrawColor(210, 226, 208);
+    doc.setLineWidth(0.2);
+    doc.rect(viewX, viewY, viewW, viewH, 'D');
+
+    // Cálculo proporcional de escala
+    const scale = Math.min(viewW / item.width, viewH / item.height);
+    const drawW = item.width * scale;
+    const drawH = item.height * scale;
+    const drawX = viewX + (viewW - drawW) / 2;
+    const drawY = viewY + (viewH - drawH) / 2;
 
     try {
       doc.addImage(item.canvas, 'JPEG', drawX, drawY, drawW, drawH);
     } catch (e) {
       try {
-        doc.addImage(item.canvas.toDataURL('image/jpeg', 0.9), 'JPEG', drawX, drawY, drawW, drawH);
-      } catch (e2) {
-        console.error('Error insertando imagen en PDF:', e2);
+        doc.addImage(item.canvas.toDataURL('image/jpeg', 0.88), 'JPEG', drawX, drawY, drawW, drawH);
+      } catch (err) {
+        console.warn('Error insertando imagen en PDF:', err);
       }
     }
+  }
 
-    if (subtitulo) {
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(7.8);
-      doc.setTextColor(80, 105, 80);
-      doc.text(subtitulo, x + cardW / 2, y + cardH - 3.5, { align: 'center' });
+  function formatearFechaPDF(isoStr) {
+    if (!isoStr) return 'N/A';
+    try {
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return isoStr;
+      const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+      const dia = d.getDate();
+      const mes = meses[d.getMonth()];
+      const anio = d.getFullYear();
+      let h = d.getHours();
+      const m = String(d.getMinutes()).padStart(2, '0');
+      const ampm = h >= 12 ? 'p. m.' : 'a. m.';
+      h = h % 12 || 12;
+      return `${dia} de ${mes} de ${anio} · ${h}:${m} ${ampm}`;
+    } catch {
+      return isoStr;
     }
   }
 
   async function generarFichaPedido(doc, o) {
-    agregarCabeceraPDF(doc, 'Ficha de Medidas');
-
-    const sugerida = o.tallaSugerida || calcularTallaSugerida(o.pecho, o.cadera);
-    const info = [
-      ['Cliente / Destinataria', o.nombre],
-      ['Fecha de Registro', formatearFecha(o.fecha)],
-      ['Prendas Solicitadas', `${o.cantidad} unidad(es)`],
-      ['Talla Solicitada por Cliente', o.talla],
-      ['Talla Calculada por Medidas', sugerida],
-      ['Código de Pedido', o.id],
-    ];
-
-    let y = 44;
-    info.forEach((r, i) => {
-      const x = i % 2 ? 112 : 15;
-      if (i % 2 === 0 && i > 0) y += 14;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(100, 120, 100);
-      doc.text(r[0], x, y);
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11.5);
-      doc.setTextColor.apply(doc, COLOR_GREEN);
-      doc.text(String(r[1]), x, y + 5);
-    });
-
-    // Separador
-    y += 18;
-    doc.setDrawColor.apply(doc, COLOR_LIGHT);
-    doc.setLineWidth(0.4);
-    doc.line(15, y, 195, y);
-    y += 8;
-
-    // Sección Silueta (Izquierda) + Tabla de Medidas (Derecha)
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.setTextColor.apply(doc, COLOR_GREEN);
-    doc.text('Silueta con Puntos de Medida', 15, y);
-    doc.text('Tabla de Medidas Corporales (pulgadas)', 106, y);
-    y += 5;
-
-    // Renderizar imagen de la silueta en canvas y pegarla en el PDF
-    const siluetaDataUrl = await generarSiluetaCanvas(o);
-    if (siluetaDataUrl) {
-      doc.setDrawColor.apply(doc, COLOR_GREEN);
-      doc.setLineWidth(0.3);
-      doc.rect(15, y, 82, 96);
-      doc.addImage(siluetaDataUrl, 'PNG', 16, y + 1, 80, 94);
+    // 1. CABECERA ELEGANTE (y = 8 a 30)
+    try {
+      const logoImg = document.querySelector('.logo');
+      if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
+        doc.addImage(logoImg, 'JPEG', 14, 8, 38, 20);
+      }
+    } catch (e) {
+      console.warn('Logo no disponible:', e);
     }
 
-    // Tabla de Medidas a la derecha
-    let yTable = y;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(79, 115, 81);
+    doc.text('AVOCAT POUR LES HOMMES · ATELIER', 196, 14, { align: 'right' });
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(31, 74, 34);
+    doc.text('FICHA TECNICA DE MEDIDAS', 196, 21.5, { align: 'right' });
+
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(8.5);
+    doc.setTextColor(100, 125, 100);
+    doc.text('Taller de Alta Costura & Patronaje a Medida', 196, 26.5, { align: 'right' });
+
+    // Barra esmeralda
+    doc.setFillColor(31, 74, 34);
+    doc.rect(14, 29.5, 182, 1, 'F');
+
+    // 2. RESUMEN DEL CLIENTE (y = 33 a 53)
+    const sugerida = o.tallaSugerida || (typeof calcularTallaSugerida === 'function' ? calcularTallaSugerida(o.pecho, o.cintura_pantalon) : '-');
+    const tipoPrendaTexto = (o.tipo_prenda === 'camisa') ? 'Solo Camisa' : (o.tipo_prenda === 'pantalon' ? 'Solo Pantalon' : 'Camisa y Pantalon');
+    const tallaCliente = [o.talla ? `Camisa: ${o.talla}` : '', o.talla_pantalon ? `Pant: ${o.talla_pantalon}` : ''].filter(Boolean).join(' · ') || (o.talla || 'N/A');
+
+    doc.setFillColor(248, 251, 246);
+    doc.roundedRect(14, 33, 182, 20, 2, 2, 'F');
+    doc.setDrawColor(207, 224, 203);
+    doc.setLineWidth(0.35);
+    doc.roundedRect(14, 33, 182, 20, 2, 2, 'D');
+
+    // Fila 1 de datos
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.8);
+    doc.setTextColor(79, 115, 81);
+    doc.text('CLIENTE / DESTINATARIA:', 18, 38.5);
+    doc.text('TALLA SOLICITADA:', 82, 38.5);
+    doc.text('FECHA DE REGISTRO:', 140, 38.5);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.setTextColor(31, 74, 34);
+    doc.text(String(o.nombre || 'Cliente').substring(0, 35), 18, 43);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(31, 74, 34);
+    doc.text(tallaCliente, 82, 43);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.8);
+    doc.setTextColor(50, 70, 50);
+    doc.text(formatearFechaPDF(o.fecha), 140, 43);
+
+    // Fila 2 de datos
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.8);
+    doc.setTextColor(79, 115, 81);
+    doc.text('PRENDAS A ELABORAR:', 18, 47.5);
+    doc.text('TALLA SUGERIDA (MEDIDAS):', 82, 47.5);
+    doc.text('REFERENCIA UNICA:', 140, 47.5);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(40, 50, 40);
+    doc.text(`${o.cantidad || 1} unid. (${tipoPrendaTexto})`, 18, 51.5);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(31, 74, 34);
+    doc.text(String(sugerida), 82, 51.5);
+
+    doc.setFont('courier', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(79, 115, 81);
+    doc.text(String(o.id || 'N/A'), 140, 51.5);
+
+    // 3. SECCIÓN MEDIA: SILUETA (Izquierda) + TABLA Y NOTAS (Derecha) (y = 56 a 150)
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(31, 74, 34);
+    doc.text('SILUETA CON PUNTOS DE MEDIDA', 14, 58.5);
+    doc.text('TABLA DE MEDIDAS CORPORALES (PULGADAS)', 98, 58.5);
+
+    // Silueta a la izquierda
+    const siluetaY = 61;
+    const siluetaW = 80;
+    const siluetaH = 89;
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(14, siluetaY, siluetaW, siluetaH, 2, 2, 'F');
+    doc.setDrawColor(31, 74, 34);
+    doc.setLineWidth(0.35);
+    doc.roundedRect(14, siluetaY, siluetaW, siluetaH, 2, 2, 'D');
+
+    const siluetaDataUrl = await generarSiluetaCanvas(o);
+    if (siluetaDataUrl) {
+      doc.addImage(siluetaDataUrl, 'PNG', 15, siluetaY + 1, siluetaW - 2, siluetaH - 2);
+    }
+
+    // Tabla de medidas a la derecha (y = 61 a 102.6)
+    let yTable = siluetaY;
+    const tableW = 98;
     const medidas = [];
     if (o.hombros) medidas.push(['Hombros (espalda)', `${o.hombros} in`]);
     if (o.pecho) medidas.push(['Pecho (contorno busto)', `${o.pecho} in`]);
     if (o.cintura) medidas.push(['Cintura (contorno)', `${o.cintura} in`]);
     if (o.manga) medidas.push(['Largo de Manga', `${o.manga} in`]);
-
-    if (o.cintura_pantalon) medidas.push(['Cintura Pantalón', `${o.cintura_pantalon} in`]);
-    if (o.largo_pantalon) medidas.push(['Largo Pantalón', `${o.largo_pantalon} in`]);
+    if (o.cintura_pantalon) medidas.push(['Cintura Pantalon', `${o.cintura_pantalon} in`]);
+    if (o.largo_pantalon) medidas.push(['Largo Pantalon', `${o.largo_pantalon} in`]);
     if (o.hombro_cuello) medidas.push(['Hombro Cuello', `${o.hombro_cuello} in`]);
     if (o.torso) medidas.push(['Torso (Cuello a Cint.)', `${o.torso} in`]);
 
+    const rowH = 5.2;
     medidas.forEach((r, i) => {
       if (i % 2 === 0) {
-        doc.setFillColor.apply(doc, COLOR_LIGHT);
-        doc.rect(106, yTable, 89, 9, 'F');
+        doc.setFillColor(243, 247, 239);
+        doc.rect(98, yTable, tableW, rowH, 'F');
       }
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9.5);
-      doc.setTextColor.apply(doc, COLOR_GREEN);
-      doc.text(r[0], 110, yTable + 6.2);
+      doc.setFontSize(8.2);
+      doc.setTextColor(60, 85, 60);
+      doc.text(r[0], 101, yTable + 3.8);
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10.5);
-      doc.text(r[1], 192, yTable + 6.2, { align: 'right' });
-      yTable += 9.5;
+      doc.setFontSize(8.8);
+      doc.setTextColor(31, 74, 34);
+      doc.text(r[1], 193, yTable + 3.8, { align: 'right' });
+      yTable += rowH;
     });
 
-    // Observaciones para Confección debajo de la tabla
-    yTable += 4;
+    // Observaciones para confección (y = 105 a 129)
+    const yObs = 105;
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor.apply(doc, COLOR_GREEN);
-    doc.text('Observaciones para Confección', 106, yTable);
-    yTable += 4;
+    doc.setFontSize(7.5);
+    doc.setTextColor(79, 115, 81);
+    doc.text('OBSERVACIONES PARA CONFECCION', 98, yObs);
 
-    doc.setDrawColor.apply(doc, COLOR_GREEN);
+    doc.setFillColor(252, 254, 250);
+    doc.roundedRect(98, yObs + 2, tableW, 23, 1.5, 1.5, 'F');
+    doc.setDrawColor(207, 224, 203);
     doc.setLineWidth(0.3);
-    doc.rect(106, yTable, 89, 39);
+    doc.roundedRect(98, yObs + 2, tableW, 23, 1.5, 1.5, 'D');
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(60, 80, 60);
-    const notas = o.notas || 'Sin especificaciones adicionales indicadas por el cliente.';
-    doc.text(doc.splitTextToSize(notas, 83), 110, yTable + 6);
+    doc.setFontSize(7.5);
+    doc.setTextColor(50, 70, 50);
+    const notasTexto = o.notas ? String(o.notas) : 'Sin especificaciones adicionales indicadas por el cliente.';
+    doc.text(doc.splitTextToSize(notasTexto, 92), 101, yObs + 6.5);
 
-    // Tipo de tela (textbox vacio para escribir a mano)
-    let yTela = Math.max(yTable + 39, y + 95) + 8;
+    // Caja para Tipo de Tela (y = 133 a 150)
+    const yTela = 133;
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(98, yTela, tableW, 17, 1.5, 1.5, 'F');
+    doc.setDrawColor(31, 74, 34);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(98, yTela, tableW, 17, 1.5, 1.5, 'D');
+
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor.apply(doc, COLOR_GREEN);
-    doc.text('Tipo de Tela:', 16, yTela + 5);
-    doc.setDrawColor.apply(doc, COLOR_GREEN);
-    doc.setFillColor(250, 252, 248);
-    doc.rect(42, yTela, 153, 7, 'FD'); // Box para tipo de tela
+    doc.setFontSize(7.2);
+    doc.setTextColor(31, 74, 34);
+    doc.text('TIPO DE TELA / REGISTRO DE TALLER:', 101, yTela + 5);
 
-    // --- PROCESAMIENTO ROBUSTO DE FOTOGRAFÍAS ---
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.2);
+    doc.setTextColor(110, 135, 110);
+    doc.text('Tejido seleccionado: _____________________________________________', 101, yTela + 11.5);
+
+    // 4. SECCIÓN DE FOTOGRAFÍAS (y = 153 a 226)
+    const yFotos = 153;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(31, 74, 34);
+    doc.text('FOTOGRAFIAS DE REFERENCIA', 14, yFotos + 2.5);
+
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(7.2);
+    doc.setTextColor(100, 125, 100);
+    doc.text('(Cliente y Muestra de Tejido)', 196, yFotos + 2.5, { align: 'right' });
+
     const fotoClienteObj = await prepararCanvasImagen(o.foto_cliente);
     const fotoTelaObj = await prepararCanvasImagen(o.foto_tela);
-    const tieneFotos = Boolean(fotoClienteObj || fotoTelaObj);
+    const cardY = yFotos + 4.5;
+    const cardH = 67;
 
-    // Sección de fotos inline (misma hoja) ─ tira horizontal compacta
-    let yFotos = yTela + 12;
-    if (tieneFotos) {
-      // Título de sección
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.setTextColor.apply(doc, COLOR_GREEN);
-      doc.text('📸 Fotografías del Pedido', 15, yFotos);
+    if (fotoClienteObj && fotoTelaObj) {
+      const cardW = 88;
+      const gap = 6;
+      dibujarTarjetaFotoPDF(doc, fotoClienteObj, 14, cardY, cardW, cardH, 'FOTO DEL CLIENTE · POSTURA DE REFERENCIA');
+      dibujarTarjetaFotoPDF(doc, fotoTelaObj, 14 + cardW + gap, cardY, cardW, cardH, 'MUESTRA DE TELA · COLOR Y TEXTURA');
+    } else if (fotoClienteObj || fotoTelaObj) {
+      const item = fotoClienteObj || fotoTelaObj;
+      const titulo = fotoClienteObj ? 'FOTO DEL CLIENTE · POSTURA DE REFERENCIA' : 'MUESTRA DE TELA · COLOR Y TEXTURA';
+      const cardW = 110;
+      const startX = 14 + (182 - cardW) / 2;
+      dibujarTarjetaFotoPDF(doc, item, startX, cardY, cardW, cardH, titulo);
+    } else {
+      doc.setFillColor(250, 252, 248);
+      doc.roundedRect(14, cardY, 182, 18, 2, 2, 'F');
+      doc.setDrawColor(215, 230, 212);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(14, cardY, 182, 18, 2, 2, 'D');
 
-      const FOTO_H = 42;   // altura de cada foto en mm
-      const FOTO_W_1 = 83; // ancho cuando hay UNA sola foto
-      const FOTO_W_2 = 82; // ancho cuando hay DOS fotos
-      const GAP      = 8;  // espacio entre las dos fotos
-      yFotos += 3;
-
-      function dibujarTarjetaCompacta(item, tarjX, tarjY, tarjW, etiqueta) {
-        if (!item) return;
-        // Marco
-        doc.setFillColor(252, 254, 250);
-        doc.roundedRect(tarjX, tarjY, tarjW, FOTO_H + 9, 2, 2, 'F');
-        doc.setDrawColor.apply(doc, COLOR_GREEN);
-        doc.setLineWidth(0.3);
-        doc.roundedRect(tarjX, tarjY, tarjW, FOTO_H + 9, 2, 2, 'D');
-        // Cabecera de la tarjeta
-        doc.setFillColor.apply(doc, COLOR_GREEN);
-        doc.roundedRect(tarjX, tarjY, tarjW, 7, 2, 2, 'F');
-        doc.rect(tarjX, tarjY + 3, tarjW, 4, 'F');
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(7.5);
-        doc.setTextColor(255, 255, 255);
-        doc.text(etiqueta, tarjX + tarjW / 2, tarjY + 5.2, { align: 'center' });
-        // Imagen
-        const pad = 3;
-        const imgAreaW = tarjW - pad * 2;
-        const imgAreaH = FOTO_H;
-        const ratio = Math.min(imgAreaW / item.width, imgAreaH / item.height);
-        const dW = item.width * ratio;
-        const dH = item.height * ratio;
-        const dX = tarjX + pad + (imgAreaW - dW) / 2;
-        const dY = tarjY + 7 + (imgAreaH - dH) / 2;
-        doc.setFillColor(255, 255, 255);
-        doc.rect(tarjX + pad, tarjY + 7, imgAreaW, imgAreaH, 'F');
-        try {
-          doc.addImage(item.canvas, 'JPEG', dX, dY, dW, dH);
-        } catch (e) {
-          try { doc.addImage(item.canvas.toDataURL('image/jpeg', 0.85), 'JPEG', dX, dY, dW, dH); } catch {}
-        }
-      }
-
-      if (fotoClienteObj && fotoTelaObj) {
-        dibujarTarjetaCompacta(fotoClienteObj, 15,            yFotos, FOTO_W_2, 'Foto del Cliente');
-        dibujarTarjetaCompacta(fotoTelaObj,    15 + FOTO_W_2 + GAP, yFotos, FOTO_W_2, 'Foto de la Tela');
-      } else {
-        const startX = 15 + (180 - FOTO_W_1) / 2;
-        dibujarTarjetaCompacta(fotoClienteObj || fotoTelaObj, startX, yFotos, FOTO_W_1,
-          fotoClienteObj ? 'Foto del Cliente' : 'Foto de la Tela');
-      }
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(110, 135, 110);
+      doc.text('Sin fotografias adjuntas para este pedido · Registro tecnico estandar de taller', 105, cardY + 10.5, { align: 'center' });
     }
 
-    // Pie de página único
+    // 5. CONTROL DE CALIDAD EN TALLER (y = 229 a 264)
+    const yControl = 229;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(31, 74, 34);
+    doc.text('CONTROL DE CALIDAD EN TALLER', 14, yControl + 2.5);
+
+    doc.setFillColor(252, 254, 250);
+    doc.roundedRect(14, yControl + 4.5, 182, 30, 2, 2, 'F');
+    doc.setDrawColor(31, 74, 34);
+    doc.setLineWidth(0.35);
+    doc.roundedRect(14, yControl + 4.5, 182, 30, 2, 2, 'D');
+
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(130, 150, 130);
-    doc.text('Avocat Confecciones · Ficha Técnica Oficial', 105, 290, { align: 'center' });
+    doc.setFontSize(7.8);
+    doc.setTextColor(50, 70, 50);
+    doc.text('[  ] 1. Patron y medidas verificadas', 20, yControl + 12);
+    doc.text('[  ] 2. Corte de tela y entretelas', 110, yControl + 12);
+
+    doc.text('[  ] 3. Confeccion y prueba de calce', 20, yControl + 18.5);
+    doc.text('[  ] 4. Acabado, planchado y empaque', 110, yControl + 18.5);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(31, 74, 34);
+    doc.text('Firma de Confeccionista: _______________________________', 20, yControl + 28);
+    doc.text('Fecha de Entrega: _____ / _____ / 202___', 118, yControl + 28);
+
+    // 6. PIE DE PÁGINA (y = 282 a 287)
+    doc.setDrawColor(210, 226, 208);
+    doc.setLineWidth(0.25);
+    doc.line(14, 281.5, 196, 281.5);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(120, 145, 120);
+    doc.text('Avocat Confecciones · Ficha Tecnica Oficial de Taller · Sistema Digital de Confeccion y Medidas', 105, 286, { align: 'center' });
   }
 
   async function descargarPDF(order, nombreArchivo) {
@@ -887,6 +981,7 @@
           else $(k).value = '';
         }
       });
+      if (window.__limpiarFotosFormulario) window.__limpiarFotosFormulario();
       $('cantidad').value = 1;
       actualizarSugerencia();
     } catch (e) {
@@ -920,6 +1015,90 @@
   // Botón para nuevo pedido
   $('nuevoPedidoBtn').addEventListener('click', function () {
     $('ok').hidden = true;
+    if (window.__limpiarFotosFormulario) window.__limpiarFotosFormulario();
     $('nombre').focus();
   });
+
+  // --- GESTIÓN INTERACTIVA DE SUBIDA DE FOTOS Y VISTA PREVIA ---
+  function configurarSubidaFotos() {
+    function vincularFoto(inputId, emptyId, previewId, imgId, triggerId, changeId, removeId) {
+      const input = $(inputId);
+      const emptyState = $(emptyId);
+      const previewState = $(previewId);
+      const img = $(imgId);
+      const triggerBtn = $(triggerId);
+      const changeBtn = $(changeId);
+      const removeBtn = $(removeId);
+      const card = input ? input.closest('.photo-upload-card') : null;
+
+      if (!input) return null;
+
+      function mostrarImagen(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (img) img.src = e.target.result;
+          if (emptyState) emptyState.style.display = 'none';
+          if (previewState) previewState.style.display = 'flex';
+        };
+        reader.readAsDataURL(file);
+      }
+
+      function limpiarFoto() {
+        input.value = '';
+        if (img) img.src = '';
+        if (previewState) previewState.style.display = 'none';
+        if (emptyState) emptyState.style.display = 'flex';
+      }
+
+      if (triggerBtn) triggerBtn.addEventListener('click', (e) => { e.preventDefault(); input.click(); });
+      if (changeBtn) changeBtn.addEventListener('click', (e) => { e.preventDefault(); input.click(); });
+      if (removeBtn) removeBtn.addEventListener('click', (e) => { e.preventDefault(); limpiarFoto(); });
+
+      input.addEventListener('change', () => {
+        if (input.files && input.files[0]) {
+          mostrarImagen(input.files[0]);
+        }
+      });
+
+      if (card) {
+        card.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          card.style.borderColor = 'var(--ink)';
+          card.style.background = '#f4f9f0';
+        });
+        card.addEventListener('dragleave', () => {
+          card.style.borderColor = '';
+          card.style.background = '';
+        });
+        card.addEventListener('drop', (e) => {
+          e.preventDefault();
+          card.style.borderColor = '';
+          card.style.background = '';
+          if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+            const file = e.dataTransfer.files[0];
+            if (file.type.startsWith('image/')) {
+              try {
+                input.files = e.dataTransfer.files;
+              } catch {}
+              mostrarImagen(file);
+            }
+          }
+        });
+      }
+
+      return { limpiar: limpiarFoto };
+    }
+
+    const c1 = vincularFoto('foto_cliente', 'emptyStateCliente', 'previewStateCliente', 'imgPreviewCliente', 'btnTriggerCliente', 'btnChangeCliente', 'btnRemoveCliente');
+    const c2 = vincularFoto('foto_tela', 'emptyStateTela', 'previewStateTela', 'imgPreviewTela', 'btnTriggerTela', 'btnChangeTela', 'btnRemoveTela');
+
+    window.__limpiarFotosFormulario = function () {
+      if (c1) c1.limpiar();
+      if (c2) c2.limpiar();
+    };
+  }
+
+  // Inicializar subida de fotos
+  configurarSubidaFotos();
 })();
