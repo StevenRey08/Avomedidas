@@ -537,7 +537,7 @@
             <div style="display:flex; align-items:center; gap:6px; margin-top:6px; flex-wrap:wrap;">
               ${o.foto_cliente ? `<img src="${o.foto_cliente}" title="Foto del Cliente (clic para ver)" style="width:30px; height:30px; object-fit:cover; border-radius:4px; border:1px solid #1f4a22; cursor:pointer;" onclick="window.verFotoTaller('${escapeHTML(o.foto_cliente)}')">` : ''}
               ${o.foto_tela ? `<img src="${o.foto_tela}" title="Foto de la Tela (clic para ver)" style="width:30px; height:30px; object-fit:cover; border-radius:4px; border:1px solid #1f4a22; cursor:pointer;" onclick="window.verFotoTaller('${escapeHTML(o.foto_tela)}')">` : ''}
-              <span style="font-size:10.5px; font-weight:700; color:#1f4a22;">${(o.foto_cliente && o.foto_tela) ? '📸 2 fotos' : '📸 1 foto'}</span>
+              <span style="font-size:10.5px; font-weight:700; color:#1f4a22; background:#eaf4e6; padding:2px 6px; border-radius:4px; border:1px solid #cfe6c4;">${(o.foto_cliente && o.foto_tela) ? '2 fotos' : '1 foto'}</span>
             </div>
           ` : ''}
         </td>
