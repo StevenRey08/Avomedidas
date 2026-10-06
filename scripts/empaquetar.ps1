@@ -18,15 +18,11 @@ Copy-Item (Join-Path $SourceDir "INSTALADOR-TALLER-AVOCAT.bat") -Destination $st
 Copy-Item (Join-Path $SourceDir "DESINSTALAR-TALLER-AVOCAT.bat") -Destination $stagingDir
 Copy-Item (Join-Path $SourceDir "instalar.ps1") -Destination $stagingDir
 Copy-Item (Join-Path $SourceDir "admin.html") -Destination $stagingDir
-Copy-Item (Join-Path $SourceDir "css\admin.css") -Destination (Join-Path $stagingDir "css\admin.css")
-Copy-Item (Join-Path $SourceDir "js\admin.js") -Destination (Join-Path $stagingDir "js\admin.js")
+Copy-Item (Join-Path $SourceDir "index.html") -Destination $stagingDir
 
-$jspdf = Join-Path $SourceDir "js\jspdf.umd.min.js"
-if (Test-Path $jspdf) {
-    Copy-Item $jspdf -Destination (Join-Path $stagingDir "js\jspdf.umd.min.js")
-}
-
-Copy-Item (Join-Path $SourceDir "assets\*") -Destination (Join-Path $stagingDir "assets") -Recurse
+Copy-Item (Join-Path $SourceDir "css\*") -Destination (Join-Path $stagingDir "css") -Recurse -Force
+Copy-Item (Join-Path $SourceDir "js\*") -Destination (Join-Path $stagingDir "js") -Recurse -Force
+Copy-Item (Join-Path $SourceDir "assets\*") -Destination (Join-Path $stagingDir "assets") -Recurse -Force
 
 $readmeText = @"
 ======================================================================
@@ -35,8 +31,8 @@ $readmeText = @"
 
 INSTRUCCIONES DE INSTALACION EN ESTA PC:
 
-1. Descomprime este archivo ZIP (Clic derecho -> Extraer todo).
-2. Entra a la carpeta descomprimida y haz doble clic en:
+1. Si estas usando el archivo ZIP, descomprimelo (Clic derecho -> Extraer todo).
+2. Entra a la carpeta del instalador y haz doble clic en:
    👉 INSTALADOR-TALLER-AVOCAT.bat
 
 3. ¡Listo! El sistema creara el acceso directo [Panel Taller Avocat]
@@ -51,16 +47,23 @@ Set-Content -Path (Join-Path $stagingDir "LEEME-INSTRUCCIONES.txt") -Value $read
 
 $desktop = [System.Environment]::GetFolderPath('Desktop')
 $zipDesktop = Join-Path $desktop "Instalador-Panel-Taller-Avocat.zip"
+$folderDesktop = Join-Path $desktop "Instalador Taller Avocat"
 $zipRepo = Join-Path $SourceDir "Instalador-Panel-Taller-Avocat.zip"
 
 if (Test-Path $zipRepo) { Remove-Item $zipRepo -Force }
 if (Test-Path $zipDesktop) { Remove-Item $zipDesktop -Force }
+if (Test-Path $folderDesktop) { Remove-Item $folderDesktop -Recurse -Force }
 
 Compress-Archive -Path "$stagingDir\*" -DestinationPath $zipRepo
 Copy-Item $zipRepo -Destination $zipDesktop
 
-Write-Host " [OK] Paquete ZIP generado con exito en:" -ForegroundColor Green
-Write-Host "      1. Tu Escritorio: $zipDesktop" -ForegroundColor Yellow
-Write-Host "      2. Carpeta del proyecto: $zipRepo" -ForegroundColor Yellow
+# Tambien dejamos la carpeta lista para usar directamente en el Escritorio
+New-Item -ItemType Directory -Path $folderDesktop | Out-Null
+Copy-Item "$stagingDir\*" -Destination $folderDesktop -Recurse -Force
+
+Write-Host " [OK] Paquete del instalador generado con exito en:" -ForegroundColor Green
+Write-Host "      1. Tu Escritorio (ZIP para compartir/Drive): $zipDesktop" -ForegroundColor Yellow
+Write-Host "      2. Tu Escritorio (Carpeta lista para instalar): $folderDesktop" -ForegroundColor Yellow
+Write-Host "      3. Carpeta del proyecto: $zipRepo" -ForegroundColor Yellow
 Write-Host ""
-Write-Host " ¡Solo sube 'Instalador-Panel-Taller-Avocat.zip' a Google Drive!" -ForegroundColor Cyan
+Write-Host " ¡Listo para usar o subir a Google Drive!" -ForegroundColor Cyan
