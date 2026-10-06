@@ -413,8 +413,8 @@
   function agregarCabecera(doc, titulo) {
     try {
       const logoImg = document.querySelector('.logo');
-      if (logoImg && logoImg.src) {
-        doc.addImage(logoImg.src, 'PNG', 15, 12, 45, 19);
+      if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
+        doc.addImage(logoImg, 'JPEG', 15, 5, 45, 24);
       }
     } catch (e) {
       console.warn('Logo no disponible:', e);

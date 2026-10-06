@@ -66,7 +66,7 @@ main {
   width: min(240px, 70%);
   height: auto;
   margin: 0 0 20px;
-  filter: drop-shadow(0 2px 4px rgba(31, 74, 34, 0.06));
+  mix-blend-mode: multiply;
 }
 
 h1 {
