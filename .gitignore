@@ -10,3 +10,4 @@ yarn-error.log*
 Thumbs.db
 data/*.json
 data/*.tmp
+*.zip
