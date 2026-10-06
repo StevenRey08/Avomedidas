@@ -746,6 +746,10 @@
     try {
       const respuesta = await enviarPedidoAPI(pedidoPayload);
       lastOrder = respuesta.order;
+      
+      // PARCHE: Asegurar que las imágenes existan en el PDF aunque la base de datos sea vieja y no las retorne
+      if (foto_cliente && !lastOrder.foto_cliente) lastOrder.foto_cliente = foto_cliente;
+      if (foto_tela && !lastOrder.foto_tela) lastOrder.foto_tela = foto_tela;
 
       $('okt').textContent = 'Pedido recibido y guardado con éxito.';
       $('okmeta').textContent = `Código: ${lastOrder.id} · Cliente: ${lastOrder.nombre} · Tipo: ${lastOrder.tipo_prenda}`;
