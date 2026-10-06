@@ -15,6 +15,20 @@
   <!-- Cinta métrica decorativa superior -->
   <div class="tape" aria-hidden="true"></div>
 
+  <!-- Toast flotante para nuevos pedidos en tiempo real -->
+  <div id="liveOrderToast" class="live-order-toast" style="display: none;" role="status" aria-live="polite">
+    <div class="toast-icon-wrap" aria-hidden="true">
+      <svg class="toast-svg-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#a7f3d0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+      </svg>
+    </div>
+    <div class="toast-content">
+      <strong id="liveOrderToastTitle">¡Nuevo pedido recibido!</strong>
+      <p id="liveOrderToastMsg">Cargando...</p>
+    </div>
+  </div>
+
   <main>
     <!-- Encabezado general -->
     <header class="admin-header">
@@ -61,6 +75,15 @@
 
     <!-- PANTALLA 2: DASHBOARD DE PEDIDOS (Solo tras iniciar sesión) -->
     <section class="dashboard-section" id="dashboardSection" style="display: none;">
+      <!-- Alerta si falta conectar la base de datos en la nube -->
+      <div id="storageAlertBanner" class="cloud-alert-banner" style="display: none;">
+        <div class="cloud-alert-icon">⚠️</div>
+        <div class="cloud-alert-body">
+          <strong>Base de datos en la nube no conectada</strong>
+          <p>Para que los pedidos que agregues desde cualquier celular o lugar se guarden <b>24/7 en internet</b>, conecta <b>Upstash Redis</b> en Vercel (Pestaña <i>Storage &rarr; Create Database &rarr; KV / Redis</i>). Es 100% gratuito.</p>
+        </div>
+      </div>
+
       <!-- Métricas del taller -->
       <div class="metrics-row">
         <div class="metric-card">
@@ -103,8 +126,8 @@
           <button type="button" id="btnExportCsv" class="btn-secondary" disabled>
             Exportar a Excel (CSV)
           </button>
-          <button type="button" id="btnRefresh" class="btn-secondary">
-            Actualizar Lista
+          <button type="button" id="btnRefresh" class="btn-secondary" title="El sistema se actualiza automáticamente cada 2.5s. Pulsa aquí si deseas forzar la actualización de inmediato.">
+            ↻ Refrescar ahora
           </button>
         </div>
       </div>
@@ -112,8 +135,15 @@
       <!-- Tabla de Fichas de Confección -->
       <div class="card table-panel">
         <div class="table-panel-header">
-          <h3>Fichas de Pedidos Recibidas (<span id="ordersCountBadge">0</span>)</h3>
-          <span id="syncStatus" class="sync-indicator">Sincronizado</span>
+          <div class="table-title-wrap">
+            <h3>Fichas de Pedidos Recibidas (<span id="ordersCountBadge">0</span>)</h3>
+            <span id="syncStatus" class="sync-indicator is-online">
+              <span class="live-dot"></span> <b>En vivo</b> · Sincronizando...
+            </span>
+          </div>
+          <div class="table-auto-badge">
+            <span class="auto-badge-pill"><span class="auto-dot-pulse"></span> Auto-actualización activa</span>
+          </div>
         </div>
 
         <div class="table-scroll-wrapper">
@@ -136,6 +166,24 @@
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- Barra de paginación para alto volumen de pedidos -->
+        <div class="pagination-bar" id="paginationBar">
+          <div class="pagination-info">
+            Mostrando <span id="pageRangeStart">0</span>-<span id="pageRangeEnd">0</span> de <span id="pageTotalCount">0</span> pedidos
+          </div>
+          <div class="pagination-controls">
+            <select id="pageSizeSelect" class="select-page-size" title="Pedidos por página">
+              <option value="25">25 por pág.</option>
+              <option value="50" selected>50 por pág.</option>
+              <option value="100">100 por pág.</option>
+              <option value="all">Ver todos</option>
+            </select>
+            <button type="button" id="btnPrevPage" class="btn-page" disabled>&larr; Anterior</button>
+            <span id="pageCurrentLabel" class="page-current">Pág. 1 / 1</span>
+            <button type="button" id="btnNextPage" class="btn-page" disabled>Siguiente &rarr;</button>
+          </div>
         </div>
       </div>
     </section>
@@ -219,8 +267,13 @@
     </footer>
   </main>
 
-  <!-- jsPDF Library -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- jsPDF Library (Local con fallback a CDN) -->
+  <script src="./js/jspdf.umd.min.js"></script>
+  <script>
+    if (!window.jspdf) {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>');
+    }
+  </script>
   <!-- Script del panel administrativo -->
   <script src="./js/admin.js"></script>
 </body>

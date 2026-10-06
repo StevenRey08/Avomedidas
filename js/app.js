@@ -395,30 +395,13 @@
     return `pedido-avocat-${slug}.pdf`;
   }
 
+  const CLOUD_API_URL = 'https://avomedidas.vercel.app';
+
   function getApiBase() {
-    // Si la página se sirve desde el servidor Node (puerto 3000)
-    if (window.location.port === '3000') {
+    if (window.location.hostname.endsWith('vercel.app')) {
       return '';
     }
-
-    // Si estamos en un dominio web de producción (Vercel, custom domain)
-    const isDomainWeb =
-      window.location.protocol.startsWith('http') &&
-      !['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname) &&
-      !window.location.hostname.startsWith('192.168.') &&
-      !window.location.hostname.startsWith('10.') &&
-      !window.location.hostname.startsWith('172.');
-    if (isDomainWeb) {
-      return '';
-    }
-
-    // Si estamos en una IP de la red local de la tienda pero en otro puerto
-    if (window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.')) {
-      return `http://${window.location.hostname}:3000`;
-    }
-
-    // Por defecto en local (file://, Live Server 5500, localhost)
-    return 'http://localhost:3000';
+    return CLOUD_API_URL;
   }
 
   const API_BASE = getApiBase();
@@ -488,6 +471,13 @@
         const orderGuardado = data.order || datosPedido;
         orderGuardado._sincronizado = true;
         guardarEnLocalStorage(orderGuardado);
+        try {
+          if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('avocat_pedidos_channel');
+            bc.postMessage({ type: 'NUEVO_PEDIDO', order: orderGuardado });
+            bc.close();
+          }
+        } catch {}
         return data;
       }
       throw new Error(data.error || 'Error al procesar el pedido en el servidor.');

@@ -8,37 +8,24 @@
   const $ = (id) => document.getElementById(id);
 
   let orders = [];
-  let authToken = sessionStorage.getItem('avocat_admin_token') || '';
-  let authUser = sessionStorage.getItem('avocat_admin_user') || '';
+  let authToken = localStorage.getItem('avocat_admin_token') || sessionStorage.getItem('avocat_admin_token') || '';
+  let authUser = localStorage.getItem('avocat_admin_user') || sessionStorage.getItem('avocat_admin_user') || '';
   let healthCheckInterval = null;
 
   const COLOR_GREEN = [31, 74, 34];
   const COLOR_LIGHT = [241, 248, 236];
 
+  const CLOUD_API_URL = 'https://avomedidas.vercel.app';
+
   function getApiBase() {
-    // Si la página se sirve desde el servidor Node (puerto 3000)
-    if (window.location.port === '3000') {
+    // Si estamos ejecutando directamente dentro de Vercel (mismo dominio en la nube)
+    if (window.location.hostname.endsWith('vercel.app')) {
       return '';
     }
 
-    // Si estamos en un dominio web de producción (Vercel, custom domain)
-    const isDomainWeb =
-      window.location.protocol.startsWith('http') &&
-      !['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname) &&
-      !window.location.hostname.startsWith('192.168.') &&
-      !window.location.hostname.startsWith('10.') &&
-      !window.location.hostname.startsWith('172.');
-    if (isDomainWeb) {
-      return '';
-    }
-
-    // Si estamos en una IP de la red local de la tienda pero en otro puerto
-    if (window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.')) {
-      return `http://${window.location.hostname}:3000`;
-    }
-
-    // Por defecto en local (file://, Live Server 5500, localhost)
-    return 'http://localhost:3000';
+    // En cualquier entorno local (acceso directo en escritorio, file://, localhost, Live Server, etc.)
+    // SIEMPRE conectarse directamente a la nube de Vercel para recibir los pedidos de los clientes en tiempo real
+    return CLOUD_API_URL;
   }
 
   const API_BASE = getApiBase();
@@ -141,10 +128,11 @@
     if (resultado.ok) {
       authToken = resultado.token;
       authUser = resultado.user;
+      localStorage.setItem('avocat_admin_token', authToken);
+      localStorage.setItem('avocat_admin_user', authUser);
       sessionStorage.setItem('avocat_admin_token', authToken);
       sessionStorage.setItem('avocat_admin_user', authUser);
       mostrarDashboard();
-      cargarPedidos();
     } else {
       errBox.textContent = resultado.error;
       errBox.style.display = 'block';
@@ -152,37 +140,182 @@
     }
   });
 
+  const POLLING_INTERVAL_ACTIVE = 2500; // Auto-actualización rápida cada 2.5 segundos cuando la ventana está activa
+  const POLLING_INTERVAL_HIDDEN = 15000; // 15 segundos cuando la ventana está minimizada
+  let autoRefreshTimer = null;
+  let pedidosConocidosIds = new Set();
+  let recienLlegadosIds = new Set();
+  let ultimoFingerprint = '';
+  let isFetching = false;
+  let toastTimer = null;
+
+  /* ------------------- NOTIFICACIÓN Y CHIME EN TIEMPO REAL ------------------- */
+  function reproducirSonidoNuevoPedido() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+      const now = ctx.currentTime;
+
+      // Nota 1 (Mi - 659.25Hz)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(659.25, now);
+      gain1.gain.setValueAtTime(0.15, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.35);
+
+      // Nota 2 (Sol# - 830.61Hz)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(830.61, now + 0.12);
+      gain2.gain.setValueAtTime(0.18, now + 0.12);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.12);
+      osc2.stop(now + 0.55);
+    } catch {}
+  }
+
+  // Desbloquear audio en la primera interacción del usuario con la página
+  let audioContextUnlocked = false;
+  function desbloquearAudio() {
+    if (audioContextUnlocked) return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        const dummy = new AudioCtx();
+        dummy.resume().then(() => {
+          dummy.close();
+          audioContextUnlocked = true;
+        }).catch(() => {});
+      }
+    } catch {}
+  }
+  document.addEventListener('click', desbloquearAudio, { once: true });
+
+  function mostrarToastNuevoPedido(order) {
+    const toast = $('liveOrderToast');
+    if (!toast) return;
+
+    const tallaTxt = order.talla ? ` (${order.talla})` : '';
+    $('liveOrderToastTitle').textContent = `¡Nuevo pedido recibido!${tallaTxt}`;
+    $('liveOrderToastMsg').textContent = `${order.nombre} · ${order.cantidad} prenda(s)`;
+    toast.style.display = 'flex';
+
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toast.style.display = 'none';
+    }, 6000);
+  }
+
+  function reiniciarTimerPolling() {
+    if (autoRefreshTimer) {
+      clearInterval(autoRefreshTimer);
+      autoRefreshTimer = null;
+    }
+    if (!authToken) return;
+
+    const ms = document.hidden ? POLLING_INTERVAL_HIDDEN : POLLING_INTERVAL_ACTIVE;
+    autoRefreshTimer = setInterval(() => {
+      cargarPedidos(true); // Modo silencioso en segundo plano
+    }, ms);
+  }
+
+  function iniciarAutoActualizacion() {
+    detenerAutoActualizacion();
+    cargarPedidos(false);
+    reiniciarTimerPolling();
+  }
+
+  function detenerAutoActualizacion() {
+    if (autoRefreshTimer) {
+      clearInterval(autoRefreshTimer);
+      autoRefreshTimer = null;
+    }
+  }
+
   function mostrarDashboard() {
     $('authSection').style.display = 'none';
     $('dashboardSection').style.display = 'block';
     $('sessionBar').style.display = 'flex';
     $('sessionUserLabel').textContent = `Usuario: ${authUser || 'avomarca'}`;
-    clearInterval(healthCheckInterval);
-    healthCheckInterval = setInterval(cargarPedidos, 30000);
+    iniciarAutoActualizacion();
   }
 
   function mostrarLogin() {
-    clearInterval(healthCheckInterval);
-    healthCheckInterval = null;
+    detenerAutoActualizacion();
     $('authSection').style.display = 'block';
     $('dashboardSection').style.display = 'none';
     $('sessionBar').style.display = 'none';
     $('userInput').value = '';
     $('passInput').value = '';
     $('loginError').style.display = 'none';
+    localStorage.removeItem('avocat_admin_token');
+    localStorage.removeItem('avocat_admin_user');
     sessionStorage.removeItem('avocat_admin_token');
     sessionStorage.removeItem('avocat_admin_user');
     authToken = '';
     authUser = '';
+    pedidosConocidosIds.clear();
+    recienLlegadosIds.clear();
+    ultimoFingerprint = '';
   }
 
   $('btnLogout').addEventListener('click', mostrarLogin);
 
+  // Auto-actualizar instantáneamente cuando la ventana recupera el foco o se hace visible
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && authToken) {
+      cargarPedidos(true);
+    }
+    reiniciarTimerPolling();
+  });
+
+  window.addEventListener('focus', () => {
+    if (authToken) {
+      cargarPedidos(true);
+    }
+  });
+
+  // Comunicación instantánea entre pestañas del mismo navegador (0 milisegundos)
+  try {
+    if (typeof BroadcastChannel !== 'undefined') {
+      const bc = new BroadcastChannel('avocat_pedidos_channel');
+      bc.onmessage = (ev) => {
+        if (ev.data && ev.data.type === 'NUEVO_PEDIDO' && authToken) {
+          cargarPedidos(true);
+        }
+      };
+    }
+  } catch {}
+
+  // Sincronización cuando cambia el almacenamiento local
+  window.addEventListener('storage', (ev) => {
+    if (ev.key === LOCAL_STORAGE_KEY && authToken) {
+      cargarPedidos(true);
+    }
+  });
+
   /* ------------------- CARGA DE DATOS ------------------- */
-  async function cargarPedidos() {
-    $('syncStatus').textContent = 'Sincronizando...';
-    $('syncStatus').classList.remove('is-online', 'is-offline');
-    $('syncStatus').setAttribute('role', 'status');
+  async function cargarPedidos(isBackground = false) {
+    if (isFetching) return;
+    isFetching = true;
+
+    if (!isBackground) {
+      $('syncStatus').innerHTML = '<span class="live-dot"></span> Sincronizando...';
+      $('syncStatus').classList.remove('is-online', 'is-offline');
+      $('syncStatus').setAttribute('role', 'status');
+    }
 
     let serverOrders = [];
     let serverStorage = null;
@@ -215,36 +348,42 @@
         serverOk = true;
       }
     } catch (err) {
-      console.warn('Servidor no disponible al cargar pedidos:', err);
-    }
-
-    // Combinar con pedidos guardados localmente (sin duplicar ID)
-    const localOrders = obtenerPedidosLocales();
-    const orderMap = new Map();
-
-    // Prioridad a los de servidor
-    serverOrders.forEach((o) => orderMap.set(o.id, o));
-    // Sincronizar pedidos locales que falten en el servidor para persistirlos en disco
-    if (serverOk && localOrders.length > 0) {
-      for (const lo of localOrders) {
-        if (!orderMap.has(lo.id)) {
-          orderMap.set(lo.id, lo);
-          fetch(`${API_BASE}/api/pedidos`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(lo),
-          }).catch(() => {});
-        }
+      if (!isBackground) {
+        console.warn('Servidor no disponible al cargar pedidos:', err);
       }
-    } else {
-      localOrders.forEach((o) => {
-        if (!orderMap.has(o.id)) {
-          orderMap.set(o.id, o);
-        }
-      });
+    } finally {
+      isFetching = false;
     }
 
-    orders = Array.from(orderMap.values());
+    // Detectar nuevos pedidos para avisar automáticamente con sonido y toast
+    if (serverOk && pedidosConocidosIds.size > 0 && serverOrders.length > 0) {
+      const nuevos = serverOrders.filter((o) => !pedidosConocidosIds.has(o.id));
+      if (nuevos.length > 0) {
+        nuevos.forEach((n) => recienLlegadosIds.add(n.id));
+        reproducirSonidoNuevoPedido();
+        mostrarToastNuevoPedido(nuevos[0]);
+        setTimeout(() => {
+          nuevos.forEach((n) => recienLlegadosIds.delete(n.id));
+          renderTabla();
+        }, 7000);
+      }
+    }
+
+    // Guardar IDs conocidos
+    if (serverOk && serverOrders.length > 0) {
+      pedidosConocidosIds = new Set(serverOrders.map((o) => o.id));
+    }
+
+    // Manejo de órdenes según estado de servidor y almacenamiento en la nube
+    if (serverOk && serverStorage && serverStorage.configured) {
+      orders = serverOrders;
+    } else if (serverOk && serverOrders.length > 0) {
+      orders = serverOrders;
+    } else {
+      const localOrders = obtenerPedidosLocales();
+      orders = localOrders;
+    }
+
     // Ordenar de más reciente a más antiguo
     orders.sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
 
@@ -252,12 +391,18 @@
     const totalPrendas = orders.reduce((sum, o) => sum + (parseInt(o.cantidad, 10) || 1), 0);
     $('statGarments').textContent = totalPrendas;
 
+    const banner = $('storageAlertBanner');
     if (serverStorage) {
       $('statStorage').textContent = serverStorage.provider || 'Redis Activo';
       $('statStorage').title = serverStorage.status || '';
+
+      if (banner) {
+        banner.style.display = serverStorage.configured === false ? 'flex' : 'none';
+      }
     } else {
-      $('statStorage').textContent = serverOk ? 'Redis' : 'Almacenamiento Local';
-      $('statStorage').title = 'Modo taller local activo';
+      $('statStorage').textContent = serverOk ? 'Nube Vercel' : 'Modo Desconectado';
+      $('statStorage').title = 'Conectado a Vercel Cloud';
+      if (banner) banner.style.display = 'none';
     }
 
     $('ordersCountBadge').textContent = orders.length;
@@ -265,17 +410,31 @@
     $('btnExportCsv').disabled = orders.length === 0;
 
     if (serverOk) {
-      const ahora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      $('syncStatus').textContent = `Servidor conectado · actualizado a las ${ahora}`;
+      const ahora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      $('syncStatus').innerHTML = `<span class="live-dot"></span> <b>En vivo</b> · sincronizado ${ahora}`;
       $('syncStatus').classList.add('is-online');
+      $('syncStatus').classList.remove('is-offline');
+      $('syncStatus').title = 'Auto-actualización automática activa en tiempo real (cada 2.5s)';
     } else {
-      $('syncStatus').textContent = 'Servidor desconectado · mostrando datos locales';
+      $('syncStatus').innerHTML = 'Servidor en la nube desconectado · mostrando datos locales';
       $('syncStatus').classList.add('is-offline');
+      $('syncStatus').classList.remove('is-online');
     }
-    renderTabla();
+
+    // Comprobar si cambió la lista de pedidos para evitar re-renderizados innecesarios del DOM
+    const nuevoFingerprint = orders.map((o) => `${o.id}:${o.fecha}:${o.cantidad}:${o.talla}`).join('|');
+    const cambio = nuevoFingerprint !== ultimoFingerprint;
+    ultimoFingerprint = nuevoFingerprint;
+
+    if (cambio || !isBackground) {
+      renderTabla();
+    }
   }
 
-  $('btnRefresh').addEventListener('click', cargarPedidos);
+  $('btnRefresh').addEventListener('click', () => cargarPedidos(false));
+
+  let currentPage = 1;
+  let pageSize = 50;
 
   /* ------------------- RENDERIZADO DE TABLA ------------------- */
   function renderTabla() {
@@ -294,6 +453,7 @@
     });
 
     if (orders.length === 0) {
+      if ($('paginationBar')) $('paginationBar').style.display = 'none';
       tbody.innerHTML = `
         <tr>
           <td colspan="8" class="table-empty">
@@ -305,6 +465,7 @@
     }
 
     if (filtrados.length === 0) {
+      if ($('paginationBar')) $('paginationBar').style.display = 'none';
       tbody.innerHTML = `
         <tr>
           <td colspan="8" class="table-empty">
@@ -315,12 +476,47 @@
       return;
     }
 
-    tbody.innerHTML = filtrados
-      .map(
-        (o) => `
-      <tr data-id="${escapeHTML(o.id)}">
+    const totalFiltrados = filtrados.length;
+    let itemsAMostrar = filtrados;
+
+    if (pageSize !== 'all') {
+      const totalPages = Math.ceil(totalFiltrados / pageSize) || 1;
+      if (currentPage > totalPages) currentPage = totalPages;
+      if (currentPage < 1) currentPage = 1;
+
+      const startIndex = (currentPage - 1) * pageSize;
+      const endIndex = Math.min(startIndex + pageSize, totalFiltrados);
+      itemsAMostrar = filtrados.slice(startIndex, endIndex);
+
+      if ($('paginationBar')) {
+        $('paginationBar').style.display = 'flex';
+        $('pageRangeStart').textContent = startIndex + 1;
+        $('pageRangeEnd').textContent = endIndex;
+        $('pageTotalCount').textContent = totalFiltrados;
+        $('pageCurrentLabel').textContent = `Pág. ${currentPage} / ${totalPages}`;
+        $('btnPrevPage').disabled = currentPage <= 1;
+        $('btnNextPage').disabled = currentPage >= totalPages;
+      }
+    } else {
+      if ($('paginationBar')) {
+        $('paginationBar').style.display = 'flex';
+        $('pageRangeStart').textContent = 1;
+        $('pageRangeEnd').textContent = totalFiltrados;
+        $('pageTotalCount').textContent = totalFiltrados;
+        $('pageCurrentLabel').textContent = 'Todos';
+        $('btnPrevPage').disabled = true;
+        $('btnNextPage').disabled = true;
+      }
+    }
+
+    tbody.innerHTML = itemsAMostrar
+      .map((o) => {
+        const esNuevo = recienLlegadosIds.has(o.id);
+        return `
+      <tr data-id="${escapeHTML(o.id)}" class="${esNuevo ? 'row-nuevo-pedido' : ''}">
         <td>
           <strong>${formatearFechaCorta(o.fecha)}</strong>
+          ${esNuevo ? '<span class="badge-nuevo-item">¡NUEVO!</span>' : ''}
           <br><small style="color:var(--mute);">${escapeHTML(o.id)}</small>
         </td>
         <td><strong>${escapeHTML(o.nombre)}</strong></td>
@@ -347,13 +543,44 @@
           </button>
         </td>
       </tr>
-    `
-      )
+    `;
+      })
       .join('');
   }
 
-  $('adminSearch').addEventListener('input', renderTabla);
-  $('sizeFilter').addEventListener('change', renderTabla);
+  $('adminSearch').addEventListener('input', () => {
+    currentPage = 1;
+    renderTabla();
+  });
+
+  $('sizeFilter').addEventListener('change', () => {
+    currentPage = 1;
+    renderTabla();
+  });
+
+  if ($('btnPrevPage')) {
+    $('btnPrevPage').addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderTabla();
+      }
+    });
+  }
+
+  if ($('btnNextPage')) {
+    $('btnNextPage').addEventListener('click', () => {
+      currentPage++;
+      renderTabla();
+    });
+  }
+
+  if ($('pageSizeSelect')) {
+    $('pageSizeSelect').addEventListener('change', (e) => {
+      pageSize = e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10);
+      currentPage = 1;
+      renderTabla();
+    });
+  }
 
   // Acciones en la tabla
   $('ordersTbody').addEventListener('click', async function (e) {
@@ -956,7 +1183,6 @@
   /* ------------------- INICIALIZACIÓN ------------------- */
   if (authToken && authUser) {
     mostrarDashboard();
-    cargarPedidos();
   } else {
     mostrarLogin();
   }
